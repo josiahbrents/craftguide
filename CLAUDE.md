@@ -1,11 +1,11 @@
-# CLAUDE.md: Minecraft companion
+# CLAUDE.md: CraftGuide
 
 Handoff notes from the claude.ai chat where this app was built. Read this first.
 
 ## Who and what
 - Owner: Josiah. Uses it on his iPhone as a Home Screen web app; his brother uses it too.
 - Live site: https://craftguide.netlify.app (Netlify, free account, project `craftguide`, formerly `whimsical-rabanadas-da6ddf`, whose old URL now 404s).
-- Code: private GitHub repo https://github.com/josiahbrents/minecraft-companion, branch `main`.
+- Code: private GitHub repo https://github.com/josiahbrents/craftguide, branch `main` (renamed from `minecraft-companion`; the local folder still has the old name).
 - Java Edition only. Bedrock is out of scope everywhere.
 - Repo must stay **private**: `site/textures.js`, `site/trims_data.js`, `site/banner_data.js` and `site/fonts/mojangles.woff` are built from Mojang's default resource pack.
 
@@ -31,7 +31,7 @@ No framework, no bundler. `site/index.html` loads classic scripts in this order,
 7. `tabs_brew_trade.js`: shared tab state `TS` (saved to localStorage `mc-tabs`), `TABS`/`TAB_NAMES`, helpers (`irow`, `ilist`, `head`, `subnav`), Brewing and Trades (professions only, one page). `tabs_more.js`: Smithing (incl. 3D trim preview), Food, Tools (portal converter, saved portals with link check, XP to level, furnace fuel list). `banner_data.js` + `tabs_banner.js`: Banners. `links.js`: cross-tab links, item card, back bar, `toast()`, `undoable()`, `searchBox()`. `tabs_shell.js` (last): tab switching, pinch-zoom blocking, scroll fades, all event handlers, crafting extras (back history, phone recipe sheet, crafting tree, crafting calculator), start-up tab, service worker registration.
 - Several features wrap earlier globals (e.g. `renderPanel = function(){...}` in `tabs_shell.js`), so script order matters. `links.js` functions are called at render time, so earlier files can use them.
 - `style.css` is a single file (base styles, then enchanting, then tab styles, then links/toast/card at the end). Panel text color is `--on-panel`. The pixel font is `--disp` (Mojangles). Body font Atkinson Hyperlegible is self-hosted in `fonts/` (OFL), so nothing loads from Google.
-- `sw.js`: cache-first offline copy. A new version precaches every file, waits, and the page shows an "Update ready · Reload" toast. **Bump `CACHE` (currently `guide-v13`) on every release** and list any new files in `FILES`, or phones keep the old version.
+- `sw.js`: cache-first offline copy. A new version precaches every file, waits, and the page shows an "Update ready · Reload" toast. **Bump `CACHE` (currently `guide-v14`) on every release** and list any new files in `FILES`, or phones keep the old version.
 - localStorage keys: `mc-tabs` (most tabs, plus `TS.ui.last` = last tab opened), `mc-ench` (enchanting planner), `mc-steps` (anvil checklist). Every tab with saved state needs a key in the initial `TS` object or it won't load back (saved banners were silently lost before `banner:{}` was added).
 - Tabs: craft, ench, brew, trade, smith, banner, food, tools. `OLD_TABS` maps removed tabs (`xp`, `portal`, `smelt`) to Tools for old links and a saved last tab; old saved portals were migrated. The bottom bar scrolls sideways with edge fades. There is no swipe navigation, on purpose.
 - No zoom: viewport `maximum-scale=1, user-scalable=no` (iOS ignores this), so `tabs_shell.js` also blocks the `gesture*` events and two-finger `touchmove`. `html{touch-action:manipulation}` stops double-tap zoom. Long-press selection and callouts are off except in inputs. `#stage3d` drag uses pointer events and still works. Pinch blocking was only verified in code, not on a real iPhone.
