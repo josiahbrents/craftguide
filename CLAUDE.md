@@ -4,7 +4,8 @@ Handoff notes from the claude.ai chat where this app was built. Read this first.
 
 ## Who and what
 - Owner: Josiah. Uses it on his iPhone as a Home Screen web app; his brother uses it too.
-- Live site: https://whimsical-rabanadas-da6ddf.netlify.app (Netlify, free account, project `whimsical-rabanadas-da6ddf`).
+- Live site: https://craftguide.netlify.app (Netlify, free account, project `craftguide`, formerly `whimsical-rabanadas-da6ddf`, whose old URL now 404s).
+- Code: private GitHub repo https://github.com/josiahbrents/minecraft-companion, branch `main`.
 - Java Edition only. Bedrock is out of scope everywhere.
 - Repo must stay **private**: `site/textures.js`, `site/trims_data.js`, `site/banner_data.js` and `site/fonts/mojangles.woff` are built from Mojang's default resource pack.
 
