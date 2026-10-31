@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Minecraft companion</title>
-<meta name="description" content="Minecraft: Java Edition crafting, enchanting, brewing, trading, smelting, smithing, food, XP and portal guides.">
-<meta name="theme-color" content="#1d2823">
+<meta name="description" content="Minecraft: Java Edition crafting, enchanting, brewing, trading, smelting, smithing, banners, food, nether portals and XP.">
+<meta name="theme-color" content="#c7d0c2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d2823" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="MC Guide">
@@ -13,13 +14,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav class="tabs" aria-label="Sections">
+<nav class="tabs" aria-label="Sections"><div class="tabsc">
   <button type="button" data-tab="craft" aria-current="page"><img data-ic="Crafting Table" alt="" width="16" height="16"><span>Crafting</span></button>
   <button type="button" data-tab="ench"><img data-ic="Enchanted Book" alt="" width="16" height="16"><span>Enchanting</span></button>
   <button type="button" data-tab="brew"><img data-ic="Potion of Strength" alt="" width="16" height="16"><span>Brewing</span></button>
@@ -28,13 +26,11 @@
   <button type="button" data-tab="smith"><img data-ic="Netherite Upgrade" alt="" width="16" height="16"><span>Smithing</span></button>
   <button type="button" data-tab="banner"><img data-ic="Red Banner" alt="" width="16" height="16"><span>Banners</span></button>
   <button type="button" data-tab="food"><img data-ic="Steak" alt="" width="16" height="16"><span>Food</span></button>
-  <button type="button" data-tab="xp"><img data-ic="Bottle o' Enchanting" alt="" width="16" height="16"><span>XP</span></button>
-  <button type="button" data-tab="portal"><img data-ic="Obsidian" alt="" width="16" height="16"><span>Portals</span></button>
-</nav>
+  <button type="button" data-tab="tools"><img data-ic="Compass" alt="" width="16" height="16"><span>Tools</span></button>
+</div></nav>
 <main class="app" id="tab-craft">
   <header class="top">
-    <h1>Crafting recipes</h1>
-    <p>Minecraft: Java Edition. Search any item to see how to craft it.</p>
+    <h1>Crafting</h1>
   </header>
   <section class="search" aria-label="Search">
     <div class="field">
@@ -49,16 +45,13 @@
   </section>
   <div class="panel-wrap" id="panel-wrap"><article class="panel" id="panel" aria-live="polite"></article></div>
   <section class="list" id="list" aria-label="Results"></section>
-  <p class="foot">Covers crafting-table and inventory recipes through the Mounts of Mayhem update, including spears. Smelting, smithing and stonecutting aren’t included, and the newest game drops may be missing. Icons use the default Minecraft textures. Beds, banners, the shield and the decorated pot use simple drawings instead.</p>
 </main>
 <main class="ench" id="tab-ench" hidden>
   <header class="top">
     <h1>Enchanting</h1>
-    <p>Plan god gear and look up how every enchantment works. Java Edition.</p>
   </header>
   <div class="esubs" id="esubs" role="group" aria-label="Enchanting sections"></div>
   <div id="ebody"></div>
-  <p class="foot">Enchantment data and anvil rules are from the Minecraft Wiki for Java Edition. Bedrock calculates anvil costs differently.</p>
 </main>
 <main class="ench tabx" id="tab-brew" hidden></main>
 <main class="ench tabx" id="tab-trade" hidden></main>
@@ -66,8 +59,10 @@
 <main class="ench tabx" id="tab-smith" hidden></main>
 <main class="ench tabx" id="tab-banner" hidden></main>
 <main class="ench tabx" id="tab-food" hidden></main>
-<main class="ench tabx" id="tab-xp" hidden></main>
-<main class="ench tabx" id="tab-portal" hidden></main>
+<main class="ench tabx" id="tab-tools" hidden></main>
+<div id="icard" class="icard" hidden><div class="icard-bg" data-icclose="1"></div><div class="icard-box" role="dialog" aria-modal="true" aria-labelledby="icard-title"></div></div>
+<button id="navback" class="navback" type="button" hidden></button>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <noscript><p style="padding:16px">This guide needs JavaScript turned on.</p></noscript>
 <script src="data.js"></script>
 <script src="textures.js"></script>
@@ -81,7 +76,7 @@
 <script src="tabs_more.js"></script>
 <script src="banner_data.js"></script>
 <script src="tabs_banner.js"></script>
+<script src="links.js"></script>
 <script src="tabs_shell.js"></script>
-<script>if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){})}</script>
 </body>
 </html>

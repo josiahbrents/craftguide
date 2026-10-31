@@ -1,21 +1,28 @@
 /* ---------- tab shell, swiping, events ---------- */
-const RENDER={brew:renderBrew,trade:renderTrade,smelt:renderSmelt,smith:renderSmith,banner:renderBanner,food:renderFood,xp:renderXP,portal:renderPortal};
+const RENDER={brew:renderBrew,trade:renderTrade,smelt:renderSmelt,smith:renderSmith,banner:renderBanner,food:renderFood,tools:renderTools};
 let curTab='craft';
-function renderTab(t){const el=document.getElementById('tab-'+t);if(el&&RENDER[t]){el.innerHTML=RENDER[t]();if(t==='smith'&&TS.smith.sub==='trim')drawTrimPreview();if(t==='banner')drawBanners()}saveTS()}
+function renderTab(t){const el=document.getElementById('tab-'+t);if(el&&RENDER[t]){el.innerHTML=RENDER[t]();if(t==='smith'&&TS.smith.sub==='trim')drawTrimPreview();if(t==='banner')drawBanners()}saveTS();updateFades()}
 function showTab(tab,keepScroll){
-  if(!TABS.includes(tab))tab='craft';curTab=tab;if(typeof closeSheet==='function')closeSheet();
+  if(!TABS.includes(tab))tab='craft';curTab=tab;if(typeof closeSheet==='function')closeSheet();closeCard();
   TABS.forEach(t=>{const el=document.getElementById('tab-'+t);if(el)el.hidden=t!==tab});
-  document.querySelectorAll('.tabs button[data-tab]').forEach(b=>{if(b.dataset.tab===tab){b.setAttribute('aria-current','page');try{b.scrollIntoView({inline:'center',block:'nearest'})}catch(e){}}else b.removeAttribute('aria-current')});
+  document.querySelectorAll('.tabs button[data-tab]').forEach(b=>{if(b.dataset.tab===tab){b.setAttribute('aria-current','page');try{const s=b.parentElement;s.scrollTo({left:b.offsetLeft-(s.clientWidth-b.offsetWidth)/2})}catch(e){}}else b.removeAttribute('aria-current')});
   if(tab==='ench'){renderEnch();setHash('ench/'+E.sub)}else if(tab==='craft'){if(state.sel)setHash('craft/'+encodeURIComponent(state.sel))}else{renderTab(tab);setHash(tab)}
+  TS.ui.last=tab;saveTS();updateBackBar();updateFades();
   if(!keepScroll)window.scrollTo(0,0);
 }
+/* soft fade on rows that scroll sideways, on the side that has more to see */
+const FADE_SEL='.tabsc,.esubs,.cats,.ichips';
+function fadeOne(el){const max=el.scrollWidth-el.clientWidth;el.classList.toggle('fl',max>2&&el.scrollLeft>2);el.classList.toggle('fr',max>2&&el.scrollLeft<max-2)}
+function updateFades(){requestAnimationFrame(()=>document.querySelectorAll(FADE_SEL).forEach(fadeOne))}
+document.addEventListener('scroll',e=>{const t=e.target;if(t.matches&&t.matches(FADE_SEL))fadeOne(t)},true);
+window.addEventListener('resize',updateFades);
 /* swipe left or right on the page to change tabs; rows that scroll sideways keep their own swipes */
 (function(){let sx=0,sy=0,st=0,skip=false;
   document.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();
-    skip=!!e.target.closest('input,select,textarea,canvas,#stage3d,.sheet,.tabs,.ichips,.esubs,.cats,.pmode,.dtable,.moresheet')},{passive:true});
+    skip=!!e.target.closest('input,select,textarea,canvas,#stage3d,.sheet,.tabs,.ichips,.esubs,.cats,.pmode,.dtable,.icard')},{passive:true});
   document.addEventListener('touchend',e=>{if(skip)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(Date.now()-st>700||Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.5)return;
-    const i=TABS.indexOf(curTab),n=dx<0?i+1:i-1;if(n<0||n>=TABS.length)return;showTab(TABS[n])},{passive:true});
+    const i=TABS.indexOf(curTab),n=dx<0?i+1:i-1;if(n<0||n>=TABS.length)return;navClear();showTab(TABS[n])},{passive:true});
 })();
 const toggleKey=(obj,k)=>{if(obj[k])delete obj[k];else obj[k]=1};
 function stepToggle(store,key){const i=key.lastIndexOf(':'),sig=key.slice(0,i),n=+key.slice(i+1),s=new Set(store[sig]||[]);s.has(n)?s.delete(n):s.add(n);if(s.size)store[sig]=[...s];else delete store[sig]}
@@ -23,66 +30,69 @@ function rerender(){const y=window.scrollY;renderTab(curTab);window.scrollTo(0,y
 document.addEventListener('click',e=>{
   const card=e.target.closest('[data-ostep],[data-tfound]');
   if(card&&!e.target.closest('button')){if(card.dataset.ostep){stepToggle(TS.brew.done,card.dataset.ostep)}else toggleKey(TS.smith.found,card.dataset.tfound);rerender();return}
-  const b=e.target.closest('button');if(!b)return;const d=b.dataset,B=TS.brew,T=TS.trade,S=TS.smelt,M=TS.smith,F=TS.food,P=TS.portal;
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset,B=TS.brew,T=TS.trade,M=TS.smith,F=TS.food,P=TS.tools;
   if(d.tsub){const [t,k]=d.tsub.split(':');TS[t].sub=k;renderTab(t);return}
   if(d.potion){B.sel=d.potion;if(d.tsubgo)B.sub='potion';rerender();if(d.tsubgo)window.scrollTo(0,0);return}
   if(d.tsubgo){const [t,k]=d.tsubgo.split(':');TS[t].sub=k;renderTab(t);window.scrollTo(0,0);return}
-  if(d.goto){const [t,q]=d.goto.split(':');if(t==='smelt'){S.sub='recipes';S.q=q||''}showTab(t);return}
   if(d.bv){B.v=d.bv;rerender();return}if(d.bform){B.form=d.bform;rerender();return}
   if(d.addorder){B.order.push({id:B.sel,v:B.v,form:B.form,n:B.n});B.sub='order';renderTab('brew');window.scrollTo(0,0);return}
   if(d.oadd){const id=document.getElementById('oid').value,p=PBY[id];let v=document.getElementById('ov').value;if(v==='ext'&&!p.ext)v='base';if(v==='enh'&&!p.enh)v='base';B.order.push({id,v,form:document.getElementById('of').value,n:+document.getElementById('on').value});rerender();return}
-  if(d.orm!==undefined){B.order.splice(+d.orm,1);rerender();return}
+  if(d.orm!==undefined){undoable(B.order,+d.orm,'Potion removed',rerender);return}
   if(d.oreset){delete B.done[d.oreset];rerender();return}
-  if(d.bing){B.ing=d.bing;rerender();return}if(d.bhave){toggleKey(B.have,d.bhave);rerender();return}
+  if(d.bing){B.ing=d.bing;rerender();return}
   if(d.prof){T.sel=d.prof;rerender();return}
   if(d.hadd){const id=document.getElementById('hid').value,lv=document.getElementById('hlv').value==='max'?1:0;if(!T.targets.some(t=>t.id===id&&t.lv===lv))T.targets.push({id,lv});rerender();return}
   if(d.hplan){const w=Object.keys(E.mode==='set'?Object.assign({},...SETS.map(s=>E.set[s])):E.want);w.filter(id=>!NO_LIBRARIAN.includes(id)).forEach(id=>{if(!T.targets.some(t=>t.id===id))T.targets.push({id,lv:1})});rerender();return}
-  if(d.hrm!==undefined){T.targets.splice(+d.hrm,1);rerender();return}
+  if(d.hrm!==undefined){undoable(T.targets,+d.hrm,'Book removed',rerender);return}
   if(d.hgot!==undefined){const t=T.targets[+d.hgot],e2=EBY[t.id];T.log.push({name:t.lv&&e2.max>1?lvTxt(t.id,e2.max):e2.name,n:T.count});T.targets.splice(+d.hgot,1);T.count=0;rerender();return}
   if(d.hinc){T.count++;rerender();return}if(d.hdec){T.count=Math.max(0,T.count-1);rerender();return}if(d.hzero){T.count=0;rerender();return}
   if(d.vadd){T.vills.push({name:document.getElementById('vname').value.trim(),prof:document.getElementById('vprof').value,note:document.getElementById('vnote').value.trim(),books:[]});rerender();return}
-  if(d.vrm!==undefined){T.vills.splice(+d.vrm,1);rerender();return}
+  if(d.vrm!==undefined){undoable(T.vills,+d.vrm,'Villager removed',rerender);return}
   if(d.vbadd!==undefined){const i=+d.vbadd,id=document.querySelector(`[data-vbid="${i}"]`).value,lv=Math.min(+document.querySelector(`[data-vblv="${i}"]`).value,EBY[id].max);T.vills[i].books.push({id,lv});rerender();return}
   if(d.vbrm){const [i,j]=d.vbrm.split(':').map(Number);T.vills[i].books.splice(j,1);rerender();return}
-  if(d.sbatch){S.item=d.sbatch;S.sub='batch';renderTab('smelt');window.scrollTo(0,0);return}
-  if(d.sft){S.ftype=d.sft;rerender();return}if(d.sfuel){toggleKey(S.fuels,d.sfuel);rerender();return}
   if(d.tall){const h=M.pieces.helmet;['chest','legs','boots'].forEach(k=>{M.pieces[k]={...h}});rerender();return}
   if(d.nup){toggleKey(M.up,d.nup);rerender();return}
   if(d.nset){M.up={};(d.nset==='armor'?['Helmet','Chestplate','Leggings','Boots']:d.nset==='all'?NETHERITE_GEAR:[]).forEach(g=>M.up[g]=1);rerender();return}
   if(d.fsort){F.sort=d.fsort;rerender();return}
-  if(d.fadd){const name=document.getElementById('minv').value,n=+document.getElementById('minvn').value,f=F.inv.find(x=>x.name===name);if(f)f.n+=n;else F.inv.push({name,n});rerender();return}
-  if(d.finc!==undefined){F.inv[+d.finc].n++;rerender();return}if(d.fdec!==undefined){const x=F.inv[+d.fdec];x.n--;if(x.n<=0)F.inv.splice(+d.fdec,1);rerender();return}
-  if(d.xpq){const [a,c]=d.xpq.split(':').map(Number);Object.assign(TS.xp,{cur:a,prog:0,target:c});rerender();return}
   if(d.padd){const v=id=>document.getElementById(id).value,num=s=>s===''?null:Math.floor(+s);const ox=num(v('pox')),oz=num(v('poz'));if(ox===null||oz===null)return;const oy=num(v('poy'))??64;
     const nx=num(v('pnx'))??Math.floor(ox/8),nz=num(v('pnz'))??Math.floor(oz/8),ny=num(v('pny'))??oy;P.saved.push({name:v('pname').trim()||'Portal '+(P.saved.length+1),o:{x:ox,y:oy,z:oz},n:{x:nx,y:ny,z:nz}});rerender();return}
-  if(d.prm!==undefined){P.saved.splice(+d.prm,1);rerender();return}
+  if(d.prm!==undefined){undoable(P.saved,+d.prm,'Portal removed',rerender);return}
 });
 document.addEventListener('keydown',e=>{const c=e.target.closest&&e.target.closest('[data-ostep],[data-tfound]');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();c.click()}});
-document.addEventListener('change',e=>{const t=e.target,d=t.dataset||{},S=TS.smelt,M=TS.smith,F=TS.food,X=TS.xp;
+document.addEventListener('change',e=>{const t=e.target,d=t.dataset||{},M=TS.smith,F=TS.food;
   if(d.bn){TS.brew.n=+t.value;rerender()}
-  else if(d.fbad){F.hideBad=t.checked;rerender()}else if(d.fh){F.hunger=+t.value;rerender()}else if(d.fsel){F.fsel=t.value;rerender()}
-  else if(d.sitem){S.item=t.value;rerender()}else if(d.sqty){S.qty=t.value;rerender()}else if(d.sfn){S.furn=t.value;rerender()}
+  else if(d.fbad){F.hideBad=t.checked;rerender()}
   else if(d.tmat||d.tpat||d.ttm){const k=d.tmat||d.tpat||d.ttm,f=d.tmat?'mat':d.tpat?'pat':'tm';M.pieces[k][f]=t.value;saveTS();drawTrimPreview()}
   else if(d.nowned){M.owned=+t.value;rerender()}else if(d.ndia){M.diag=t.checked?1:0;rerender()}
-  else if(d.mitem){X.mItem=t.value;rerender()}else if(d.mleft){X.mLeft=+t.value;rerender()}
-  else if(d.xp==='prog'){X.prog=+t.value;document.getElementById('xpout').innerHTML=xpOut();saveTS()}
-  else if(d.xp==='start'){X.start=t.value;rerender()}
 });
-document.addEventListener('input',e=>{const t=e.target,d=t.dataset||{},P=TS.portal;
+document.addEventListener('input',e=>{const t=e.target,d=t.dataset||{};
   if(d.sq){TS.smelt.q=t.value;const tmp=document.createElement('div');tmp.innerHTML=renderRecipes();document.getElementById('srows').innerHTML=tmp.querySelector('#srows').innerHTML;saveTS()}
-  else if(d.sn){TS.smelt.n=t.value;document.getElementById('frows').innerHTML=fuelRows(Math.max(1,Math.floor(+t.value||1)));saveTS()}
-  else if(d.xp&&['cur','target','rate'].includes(d.xp)){TS.xp[d.xp]=t.value;document.getElementById('xpout').innerHTML=xpOut();saveTS()}
-  else if(d.pt){P[d.pt]=t.value;document.getElementById('pout1').innerHTML=portalOut('o');document.getElementById('pout2').innerHTML=portalOut('n');saveTS()}
-  else if(d.ptr){P[d.ptr]=t.value;const tmp=document.createElement('div');tmp.innerHTML=renderTravel();document.getElementById('trout').innerHTML=tmp.querySelector('#trout').innerHTML;saveTS()}
+  else if(d.xp==='cur'||d.xp==='target'){TS.tools[d.xp]=t.value;document.getElementById('xpout').innerHTML=xpOut();saveTS()}
+  else if(d.pt){TS.tools[d.pt]=t.value;portalSync(d.pt);saveTS()}
 });
-/* crafting tab: show where smelted items and ingredients come from */
+/* crafting tab: for items that aren't crafted, list where they do come from */
 const _renderPanel=renderPanel;
 renderPanel=function(){_renderPanel();const n=state.sel;if(!n)return;
-  if(!byOut.has(n)){const r=SMELT.find(x=>x[1]===n),p=document.querySelector('#panel .plain');if(r&&p)p.insertAdjacentHTML('afterend',`<p class="plain">Smelt <b>${esc(r[0])}</b> in a furnace to get it. <button class="link" data-goto="smelt:${esc(n)}">See smelting</button></p>`);return}
-  const rec=byOut.get(n)[state.variant]||byOut.get(n)[0],ings=[...new Set(rec.grid.filter(x=>x&&!TAGS[x]))],sm=ings.filter(x=>SMELT.some(s=>s[1]===x));
-  const box=document.querySelector('#panel .ings');if(sm.length&&box)box.insertAdjacentHTML('afterend',`<p class="note">Smelted first: ${sm.map(x=>`<b>${esc(x)}</b> from ${esc(SMELT.filter(s=>s[1]===x).slice(0,2).map(s=>s[0]).join(' or '))} <button class="link" data-goto="smelt:${esc(x)}">See smelting</button>`).join('; ')}</p>`)};
+  if(!byOut.has(n)){const p=document.querySelector('#panel .plain'),info=itemInfo(n,'craft');if(p&&info.length)p.insertAdjacentHTML('afterend',`<div class="iclist inpanel">${info.map(d=>`<button type="button" class="icgo" data-go="${d.tab}|${esc(d.arg)}"><span class="icl"><b>${esc(d.label)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}</span><span class="ictab">${TAB_NAMES[d.tab]} ›</span></button>`).join('')}</div>`);return}
+  const rec=byOut.get(n)[state.variant]||byOut.get(n)[0],ings=[...new Set(rec.grid.filter(x=>x&&!TAGS[x]))],sm=ings.filter(x=>SMELT.some(s=>s[1]===x)&&!SMELT.filter(s=>s[1]===x).every(s=>/ Ore$/.test(s[0])));
+  const box=document.querySelector('#panel .ings');if(sm.length&&box)box.insertAdjacentHTML('afterend',`<p class="note">Smelted: ${sm.map(x=>`<button class="link" data-go="smelt|${esc(x)}">${esc(x)}</button>`).join(', ')}</p>`)};
 document.querySelectorAll('.tabs img[data-ic]').forEach(i=>{i.src=icon(i.dataset.ic)});
-(function(){const h=decodeURIComponent(location.hash.slice(1)).split('/')[0];if(RENDER[h])showTab(h);else{if(h.startsWith('ench'))curTab='ench';if(state.sel&&!h.startsWith('ench'))renderPanel()}})();
+/* start on the tab in the link, or else the tab used last */
+(function(){let h=decodeURIComponent(location.hash.slice(1)).split('/')[0];if(h==='xp'||h==='portal')h='tools';
+  if(!h&&TS.ui.last&&TABS.includes(TS.ui.last)&&TS.ui.last!=='craft')h=TS.ui.last;
+  if(RENDER[h])showTab(h);else if(h==='ench'||(!location.hash&&TS.ui.last==='ench'))showTab('ench');else if(state.sel)renderPanel();updateFades()})();
+/* one-time tip on phones: swiping changes tabs */
+if(!TS.ui.swipeTip&&matchMedia('(max-width:859px)').matches){setTimeout(()=>toast('Tip: swipe left or right to switch tabs',null,null,4500),1200);TS.ui.swipeTip=1;saveTS()}
+/* offline copy: the new version installs in the background, then a Reload button appears */
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){
+  const ready=w=>{if(w&&navigator.serviceWorker.controller)toast('Update ready','Reload',()=>w.postMessage('skip'),0)};
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    if(reg.waiting)ready(reg.waiting);
+    reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed')ready(w)})});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})});
+  }).catch(()=>{});
+  let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;location.reload()});
+}
 /* ---------- crafting calculator: break a recipe down to raw materials ---------- */
 const RAW=new Set(['Iron Ingot','Gold Ingot','Copper Ingot','Netherite Ingot','Diamond','Emerald','Redstone','Coal','Charcoal','Lapis Lazuli','Slime Ball','Wheat','Bone Meal','Nether Wart','Dried Kelp','Iron Nugget','Gold Nugget','Raw Iron','Raw Gold','Raw Copper','Amethyst Shard','Nether Quartz','Honeycomb','String','Leather','Sugar']);
 function breakdown(item,qty,top){
@@ -101,9 +111,9 @@ const stacks=n=>n>=64?`${Math.floor(n/64)} stack${n>=128?'s':''}${n%64?' + '+n%6
 function craftCalcHtml(){
   const n=state.sel,rec=byOut.get(n)[state.variant]||byOut.get(n)[0],q=Math.max(1,Math.min(10000,Math.floor(+TS.craftQty||rec.n)));
   const {raw,order}=breakdown(n,q,rec);
-  return `<ul class="ilist">${Object.entries(raw).map(([x,c])=>`<li>${img(x)}<span><b>${c}×</b> ${esc(x)}${c>=64?` <small>(${stacks(c)})</small>`:''}</span></li>`).join('')}</ul>
-  ${order.length>1?`<p class="small"><b>Craft in this order:</b> ${order.map(([x,o])=>`${o.k} craft${o.k>1?'s':''} of ${esc(x)}`).join(', then ')}.</p>`:''}
-  <p class="small">You get ${Math.ceil(q/rec.n)*rec.n} ${esc(n)}. Each step is rounded up to whole crafts, so you may have a few extra.</p>`;
+  return `<ul class="ilist">${Object.entries(raw).map(([x,c])=>irow(x,`${img(x)}<span><b>${c}×</b> ${esc(x)}${c>=64?` <small>(${stacks(c)})</small>`:''}</span>`)).join('')}</ul>
+  ${order.length>1?`<p class="small"><b>Order:</b> ${order.map(([x,o])=>`${o.k}× ${esc(x)}`).join(' → ')}</p>`:''}
+  ${Math.ceil(q/rec.n)*rec.n>q?`<p class="small">Makes ${Math.ceil(q/rec.n)*rec.n}</p>`:''}`;
 }
 const _renderPanel2=renderPanel;
 renderPanel=function(){_renderPanel2();const n=state.sel;if(!n||!byOut.has(n))return;const box=document.querySelector('#panel');if(!box)return;
@@ -153,8 +163,7 @@ renderPanel=function(){_renderPanel3();const n=state.sel,box=document.getElement
   const tree=treeOf(n,q,rec,[]),{raw}=breakdown(n,q,rec);
   box.insertAdjacentHTML('beforeend',`<label class="exrow"><span>How many ${esc(n)}</span><input class="num" type="number" inputmode="numeric" min="1" data-cqt="1" value="${q}"></label>
     <ul class="tree root">${treeHtml(tree,0)}</ul>
-    <h3>Everything to gather</h3><ul class="ilist">${Object.entries(raw).map(([x,c])=>`<li>${img(x)}<span><b>${c}×</b> ${esc(x)}${c>=64?` <small>(${stacks(c)})</small>`:''}</span></li>`).join('')}</ul>
-    <p class="small">Work from the bottom of the tree up. Tap Open on any item to see its recipe. Smelted items like iron ingots count as things to gather.</p>`);
+    <h3>Everything to gather</h3><ul class="ilist">${Object.entries(raw).map(([x,c])=>irow(x,`${img(x)}<span><b>${c}×</b> ${esc(x)}${c>=64?` <small>(${stacks(c)})</small>`:''}</span>`)).join('')}</ul>`);
 };
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!b.closest('#tab-craft'))return;const d=b.dataset;
   if(d.back){const prev=HIST.pop();if(prev){navBack=true;select(prev,false)}return}

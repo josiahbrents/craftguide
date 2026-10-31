@@ -92,10 +92,6 @@ const xpTotal=L=>L<=16?L*L+6*L:L<=31?2.5*L*L-40.5*L+360:4.5*L*L-162.5*L+2220;
 const xpNext=L=>L<=15?2*L+7:L<=30?5*L-38:9*L-158;
 function xpToLevel(p){let L=0;while(xpTotal(L+1)<=p)L++;return {level:L,into:p-xpTotal(L),need:xpNext(L)}}
 
-/* durability (Java) for the Mending calculator */
-const DURABILITY=[['Netherite Helmet',407],['Netherite Chestplate',592],['Netherite Leggings',555],['Netherite Boots',481],['Diamond Helmet',363],['Diamond Chestplate',528],['Diamond Leggings',495],['Diamond Boots',429],['Iron Helmet',165],['Iron Chestplate',240],['Iron Leggings',225],['Iron Boots',195],['Golden Chestplate',112],['Leather Tunic',80],['Turtle Shell',275],['Elytra',432],['Shield',336],['Netherite Sword',2031],['Netherite Pickaxe',2031],['Netherite Axe',2031],['Netherite Shovel',2031],['Netherite Hoe',2031],['Diamond Sword',1561],['Diamond Pickaxe',1561],['Iron Pickaxe',250],['Stone Pickaxe',131],['Wooden Pickaxe',59],['Golden Pickaxe',32],['Bow',384],['Crossbow',465],['Trident',250],['Mace',500],['Fishing Rod',64],['Shears',238],['Flint and Steel',64],['Brush',64],['Carrot on a Stick',25],['Warped Fungus on a Stick',100]];
-/* where experience comes from (points) */
-const XP_SOURCES=[['Ender Dragon','12,000 the first time, 500 after'],['Wither','50'],['Blaze','10'],['Guardian or elder guardian','10'],['Evoker','10'],['Monster spawner (broken)','15–43'],['Most hostile mobs','5'],['Slime or magma cube','1–4, by size'],['Breeding animals','1–7'],['Fishing','1–6'],['Trading with villagers','3–6 per trade'],['Bottle o\' Enchanting','3–11'],['Passive mobs','1–3'],['Diamond or emerald ore','3–7'],['Lapis or nether quartz ore','2–5'],['Redstone ore','1–5'],['Coal ore','0–2'],['Nether gold ore','0–1'],['Sculk catalyst','5'],['Smelting','depends on the item, see Smelting']];
 /* diamonds in each diamond item, for the netherite calculator */
 const DIAMOND_COST={Helmet:5,Chestplate:8,Leggings:7,Boots:4,Sword:2,Spear:1,Axe:3,Pickaxe:3,Shovel:1,Hoe:2};
 /* librarian odds: 2/3 chance of a book at novice, enchantment picked from 40, then the level */

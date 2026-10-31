@@ -14,6 +14,9 @@ Handoff notes from the claude.ai chat where this app was built. Read this first.
 - Accuracy matters a lot. Check game mechanics against minecraft.wiki before building, and say plainly when something can't be done or was simplified.
 - He's mostly on his phone: keep everything mobile-first, test layouts at phone width, and keep tap targets large.
 - Explain results in plain language. He doesn't need code walkthroughs.
+- **No explanation text in the app.** He doesn't read it and players know the basics. No intro lines under tab titles, no tip paragraphs, no "how it works" pages. Keep only short labels and facts that change what you'd do (Too Expensive, Can't be crafted, Doesn't stack).
+- **Only build what players actually use while playing.** He cut calculators nobody would stop to use (food fill-up, XP sources, Mending repair cost, smelting batch/fuel calculators, "what can I brew"). Don't add things like that back.
+- He likes the tabs working together: any item shown should be tappable to see where else it appears (see Cross-tab links).
 - Ship each update as a commit; Netlify deploys from the repo.
 
 ## Architecture
@@ -22,20 +25,23 @@ No framework, no bundler. `site/index.html` loads classic scripts in this order,
 2. `textures.js`: generated icons. `TXK` = base64 PNGs keyed by hash, `TXN` = item name → key.
 3. `app.js`: Crafting tab (search, recipe panel, `select()`, `renderPanel()`, `icon()`, `img()`, `esc()`).
 4. `ench_data.js`: enchantments (`ENCH`, `EBY`, conflicts, presets), `anvil_core.js`: exact anvil optimizer (`anvilSolve`, also used by `planner_worker.js` in a Web Worker), `ench.js`: Enchanting tab.
-5. `tabs_data.js`: data for Brewing, Trades, Smelting, Smithing, Food, XP, Portals (+ durability, XP sources, librarian odds).
+5. `tabs_data.js`: data for Brewing, Trades, Smelting, Smithing, Food, Tools (+ XP level math, librarian odds).
 6. `trims_data.js`: armor/trim textures and palettes for the trim preview.
-7. `tabs_brew_trade.js`: shared tab state `TS` (saved to localStorage `mc-tabs`), helpers, Brewing and Trades. `tabs_more.js`: Smelting, Smithing (incl. 3D trim preview), Food, XP, Portals. `banner_data.js` + `tabs_banner.js`: Banners. `tabs_shell.js` (last): tab switching, swipe navigation, all event handlers, crafting extras (back history, phone recipe sheet, crafting tree, crafting calculator, smelting links).
-- Several features wrap earlier globals (e.g. `renderPanel = function(){...}` in `tabs_shell.js`), so script order matters.
-- `style.css` is a single file (base styles, then enchanting, then tab styles). The pixel font is `--disp` (Mojangles, falling back to Pixelify Sans).
-- `sw.js` is an offline cache. **Bump `CACHE` (currently `guide-v11`) on every release** and list any new files in it.
-- localStorage keys: `mc-tabs` (most tabs), `mc-ench` (enchanting planner), `mc-steps` (anvil checklist).
-- Tabs: craft, ench, brew, trade, smelt, smith, banner, food, xp, portal. The bottom bar scrolls sideways and the page swipes between tabs; elements like `.ichips`, `.esubs`, `.pmode`, `#stage3d`, `.sheet` are excluded from page swipes.
+7. `tabs_brew_trade.js`: shared tab state `TS` (saved to localStorage `mc-tabs`), `TABS`/`TAB_NAMES`, helpers (`irow`, `ilist`, `head`, `subnav`), Brewing and Trades. `tabs_more.js`: Smelting, Smithing (incl. 3D trim preview), Food, Tools (portal converter, saved portals with link check, XP to level). `banner_data.js` + `tabs_banner.js`: Banners. `links.js`: cross-tab links, item card, back bar, `toast()`, `undoable()`, `searchBox()`. `tabs_shell.js` (last): tab switching, swipe navigation, scroll fades, all event handlers, crafting extras (back history, phone recipe sheet, crafting tree, crafting calculator), start-up tab, service worker registration.
+- Several features wrap earlier globals (e.g. `renderPanel = function(){...}` in `tabs_shell.js`), so script order matters. `links.js` functions are called at render time, so earlier files can use them.
+- `style.css` is a single file (base styles, then enchanting, then tab styles, then links/toast/card at the end). Panel text color is `--on-panel`. The pixel font is `--disp` (Mojangles). Body font Atkinson Hyperlegible is self-hosted in `fonts/` (OFL), so nothing loads from Google.
+- `sw.js`: cache-first offline copy. A new version precaches every file, waits, and the page shows an "Update ready · Reload" toast. **Bump `CACHE` (currently `guide-v12`) on every release** and list any new files in `FILES`, or phones keep the old version.
+- localStorage keys: `mc-tabs` (most tabs, plus `TS.ui.last` = last tab opened and `TS.ui.swipeTip`), `mc-ench` (enchanting planner), `mc-steps` (anvil checklist). Every tab with saved state needs a key in the initial `TS` object or it won't load back (saved banners were silently lost before `banner:{}` was added).
+- Tabs: craft, ench, brew, trade, smelt, smith, banner, food, tools (old `#xp`/`#portal` links open Tools; old saved portals were migrated). The bottom bar scrolls sideways with edge fades and the page swipes between tabs; elements like `.ichips`, `.esubs`, `.pmode`, `#stage3d`, `.sheet`, `.icard` are excluded from page swipes.
+- Tap targets are 44px minimum; inputs and selects use 16px or larger text so iOS doesn't zoom; hover styles sit inside `@media (hover:hover)`.
 
 ## Key features and how they work
 - **Anvil planner** (`anvil_core.js`): exact search over every combine order using a multiset DP (identical books grouped), Java rules: final level × book multiplier, prior work penalty 2^n − 1, step > 39 = Too Expensive, +1 per conflicting enchantment on the target. Verified against the wiki: 7-enchant god boots = 66 levels; Soul Speed III + Mending = 2 one way, 12 the other. Exact up to ~14 books (budget 1.8M); beyond that it pre-merges identical low books and labels steps "Prep". Also: low-level book stacks with shortfall messages, "Build from lower books", one-big-book comparison, step checklist, full armor set mode.
 - **Librarian hunt**: odds only. Rerolls are random, there is no predictable cycle. 2/3 chance of a book at novice × 1/40 enchantments × 1/max level (Mending 1 in 60). Josiah cures villagers, so prices were left out on purpose.
 - **3D trim preview** (`tabs_more.js`): software renderer on a canvas with a depth buffer (not CSS 3D, which flickered). Box UV layout like the game; armor inflate 1 (0.5 for leggings). Per-part priority (`PART_PRI`) breaks exact-depth ties so overlapping armor never flickers.
 - **Banners**: up to 6 layers (loom limit), live preview from pattern textures, loom steps and shopping list, edit a layer's color or pattern in place. Ideas: Popular (community-inspired), Letters and numbers (role-based recipes `L`/`B` so colors can be swapped), 47 Flags, Write a word. Letters, flags and popular designs were built by hand and checked by rendering. DigMinecraft asks AI tools not to use its content, so its recipes were not copied.
+- **Cross-tab links** (`links.js`): `itemInfo(name, here)` lists every place the app covers an item: recipe and uses, smelting (output, input, fuel), brewing (potion, ingredient), villagers (sells, buys, workstation), smithing (templates, trim materials, netherite), food, banner patterns, enchantable gear, Tools. `linkItem(name, html)` wraps markup in a button only when that list isn't empty, so there are no dead taps. Tapping opens the item card; its buttons call `goTo(tab, arg)`, which sets that tab's state, renders, and flashes the row with a matching `data-at`. `NAV` stores snapshots for the "← Tab" back bar. Manual tab switches call `navClear()`. When adding a new list of items, render rows with `irow()`/`linkItem()` and add a `data-at` so jumps can find the row.
+- **Recipes added for links**: smithing template copies (7 diamonds + template + material → 2, materials from the minecraft.wiki duplication table) and the 6 craftable banner patterns.
 - **Icons**: blocks are real 3D inventory renders made from the pack's block models at 32×32; flat items use the item texture at 16×16. Show icons at 32px (or whole multiples) to stay crisp.
 
 ## Generated files and how to rebuild them
@@ -47,11 +53,16 @@ The one-off build scripts from the chat were not kept, so these files are the so
 - The pack is in `tools/texture-pack/` (gitignored). Unzip it before regenerating.
 
 ## Testing
-The chat tested by loading `site/index.html` in jsdom with stubbed canvas/matchMedia and clicking through features, plus Python renders to visually check icons, banners and the 3D model. Those test scripts were lost; recreate a jsdom smoke test (`npm i -D jsdom`) if you need regression checks. Check visual changes by rendering and looking, not just by passing tests.
+- `.claude/launch.json` has a `site` config (`python -m http.server 8123 --directory site`) for the Claude Code browser pane. Test at the mobile preset (375×812), in light and dark.
+- The service worker serves the saved copy, so unregister it and clear caches before reloading after an edit, or you'll see stale files.
+- Useful in-page checks: run `goTo` for every `[data-item]` destination on every tab and confirm it lands and `goBack()` returns; measure buttons under 44px and inputs under 16px.
+- Check visual changes by rendering and looking, not just by passing tests.
 
 ## Known rough edges / ideas
 - Decorated pot icon is a plain textured block (no neck).
 - Portal link checker ignores height (Y).
+- Banner color swatches are about 39px on phones (8 across is the most that fits), just under the 44px target.
+- The item card only knows what the app's data covers. It never says where a mob drop or ore is found.
 - Potion order planner shares brews across potions; arrows step is a note, not a brew.
 - Villager trade lists have no prices (by choice).
 - Ideas Josiah may want later: more banner designs, numbers/letters in other styles, further tabs.

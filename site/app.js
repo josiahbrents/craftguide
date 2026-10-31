@@ -134,11 +134,11 @@ function variantLabel(r){
 }
 function renderList(){
   const box=$('#list'),res=results();
-  if(res===null){box.innerHTML='<p class="hint">Type an ingredient, like <button class="link" data-q="iron ingot">iron ingot</button> or <button class="link" data-q="sand">sand</button>, to see everything it goes into.</p>';return}
+  if(res===null){box.innerHTML='<p class="hint">Try <button class="link" data-q="iron ingot">iron ingot</button> or <button class="link" data-q="sand">sand</button></p>';return}
   if(!res.length){
     let h=`<p class="hint">No recipes match “${esc(state.q)}”.</p>`;
     if(state.mode==='item'&&state.q){const alt=norm(state.q);let any=false;usedIn.forEach((_,k)=>{if(k.toLowerCase().includes(alt))any=true});
-      if(any)h+=`<p class="hint">Nothing crafts this at a crafting table, but it is an ingredient. <button class="link" data-mode="ing">Search by ingredient</button></p>`}
+      if(any)h+=`<p class="hint"><button class="link" data-mode="ing">Search it as an ingredient</button></p>`}
     else if(state.cat!=='all')h+=`<p class="hint"><button class="link" data-cat="all">Show every category</button></p>`;
     box.innerHTML=h;return;
   }
@@ -151,19 +151,18 @@ function renderPanel(){
   const r=rs[state.variant];
   const used=[...(usedIn.get(n)||[])].sort((a,b)=>a.localeCompare(b));
   const usedShown=state.usedAll?used:used.slice(0,18);
-  let h=`<div class="head">${img(n,'ic big')}<h2>${esc(n)}</h2></div>`;
+  let h=`<div class="head">${typeof linkItem==='function'?linkItem(n,img(n,'ic big'),'craft'):img(n,'ic big')}<h2>${esc(n)}</h2></div>`;
   if(rs.length>1)h+=`<div class="variants" role="group" aria-label="Recipes for ${esc(n)}">${rs.map((v,i)=>`<button class="var" data-v="${i}" aria-pressed="${i===state.variant}">${esc(variantLabel(v))}</button>`).join('')}</div>`;
   if(r){
     const cells=r.grid.map((it,i)=>it?`<button class="slot" data-name="${esc(it)}" title="${esc(it)}" aria-label="${esc(it)}">${img(it,'ic fill')}</button>`:'<div class="slot empty"></div>').join('');
     const fits=r.type==='shaped'?(r.w<=2&&r.h<=2):r.cnt<=4;
     const counts=new Map();r.grid.forEach(i=>i&&counts.set(i,(counts.get(i)||0)+1));
     h+=`<div class="craft"><div class="grid3">${cells}</div><svg class="arrow" viewBox="0 0 14 10" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 4h9V0h2v1h1v1h1v1h1v4h-1v1h-1v1h-1v1H9V6H0z"/></svg><div class="slot out">${img(n,'ic fill')}${r.n>1?`<span class="qty">${r.n}</span>`:''}</div></div>
-    <p class="meta"><span class="tag">${r.type==='shaped'?'Shaped':'Shapeless'}</span><span>${r.type==='shaped'?'Keep the ingredients in this pattern.':'Place the ingredients in any arrangement.'}</span></p>
-    <p class="meta"><span>${fits?'Fits the 2×2 grid in your inventory.':'Needs a crafting table.'}</span></p>
+    <p class="meta"><span class="tag">${r.type==='shaped'?'Shaped':'Any order'}</span><span class="tag">${fits?'Fits 2×2':'Crafting table'}</span></p>
     ${r.note?`<p class="note">${esc(r.note)}</p>`:''}
     <h3>Ingredients</h3><ul class="ings">${[...counts].map(([k,v])=>`<li><button class="ing" data-name="${esc(k)}">${img(k)}<b>${v}×</b><span>${esc(k)}</span></button></li>`).join('')}</ul>`;
   }else{
-    h+=`<p class="plain">${esc(n)} isn’t made at a crafting table. It might be mined, dropped by a mob, found in the world, or smelted.</p>`;
+    h+=`<p class="plain">Not crafted.</p>`;
   }
   if(used.length)h+=`<h3>Used to craft</h3><ul class="chips">${usedShown.map(u=>`<li><button class="chip" data-name="${esc(u)}">${img(u)}<span>${esc(u)}</span></button></li>`).join('')}</ul>${used.length>18&&!state.usedAll?`<button class="more" id="usedmore">Show all ${used.length}</button>`:''}`;
   box.innerHTML=h;

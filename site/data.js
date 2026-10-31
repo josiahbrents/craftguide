@@ -343,4 +343,16 @@ sl('Waxed Block of Copper',1,['Block of Copper','Honeycomb'],'building');
   if(f.includes('S'))sh(p+' Stairs',4,'M../MM./MMM',{M:b},'building');
   if(f.includes('W'))sh(p+' Wall',6,'MMM/MMM',{M:b},'building');
 });
+
+/* ---------- smithing template copies: 7 diamonds + template + its material makes 2 (minecraft.wiki) ---------- */
+[['Netherite Upgrade','Netherrack'],['Coast Armor Trim','Cobblestone'],['Dune Armor Trim','Sandstone'],['Eye Armor Trim','End Stone'],['Host Armor Trim','Terracotta'],
+ ['Raiser Armor Trim','Terracotta'],['Rib Armor Trim','Netherrack'],['Sentry Armor Trim','Cobblestone'],['Shaper Armor Trim','Terracotta'],['Silence Armor Trim','Cobbled Deepslate'],
+ ['Snout Armor Trim','Blackstone'],['Spire Armor Trim','Purpur Block'],['Tide Armor Trim','Prismarine'],['Vex Armor Trim','Cobblestone'],['Ward Armor Trim','Cobbled Deepslate'],
+ ['Wayfinder Armor Trim','Terracotta'],['Wild Armor Trim','Mossy Cobblestone'],['Bolt Armor Trim','Block of Copper'],['Flow Armor Trim','Breeze Rod']
+].forEach(([t,m])=>sh(t,2,'DTD/DMD/DDD',{D:'Diamond',T:t,M:m},'materials'));
+
+/* ---------- craftable banner patterns (minecraft.wiki); Globe, Snout, Flow and Guster can't be crafted ---------- */
+[['Field Masoned Banner Pattern','Bricks'],['Bordure Indented Banner Pattern','Vine'],['Flower Charge Banner Pattern','Oxeye Daisy'],
+ ['Creeper Charge Banner Pattern','Creeper Head'],['Skull Charge Banner Pattern','Wither Skeleton Skull'],['Thing Banner Pattern','Enchanted Golden Apple']
+].forEach(([p,x])=>sl(p,1,['Paper',x],'decor'));
 //DATA-END

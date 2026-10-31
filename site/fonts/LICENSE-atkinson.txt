@@ -1,0 +1,3 @@
+atkinson-400.woff2 and atkinson-700.woff2: Atkinson Hyperlegible, Copyright 2020 Braille Institute of America, Inc.
+Licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org
+Latin subset as served by Google Fonts.

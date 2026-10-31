@@ -48,7 +48,7 @@ function setSpecs(){
 }
 function renderPlanner(){
   const modes=`<div class="pmode" role="group" aria-label="Plan for"><button data-pmode="one" aria-pressed="${E.mode==='one'}">One item</button><button data-pmode="set" aria-pressed="${E.mode==='set'}">Full armor set</button></div>`;
-  const head=`<h2 class="eh">Plan god gear</h2><p class="lede">Pick what you want and get the cheapest order to combine it on an anvil. Every order is checked, so the cost is the true minimum for your books.</p>${modes}`;
+  const head=modes;
   if(E.mode==='set')return head+renderSetInputs()+'<div id="eresult" aria-live="polite"></div>';
   const t=E.type,list=typeEnchants(t);
   const ex=list.map(e=>`<label class="exrow"><span>${esc(e.name)}</span>${lvSelect(e.id,E.existing[e.id]||0,'ex',true)}</label>`).join('');
@@ -59,8 +59,7 @@ function renderPlanner(){
   let draft='';
   if(E.draft){
     const opts=ENCH.filter(e=>e.src!=='curse').map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
-    draft=`<div class="draft"><p class="small">Add each enchantment on the book, then save it.</p>
-      <div class="drow"><select id="dench" aria-label="Enchantment">${opts}</select><select id="dlv" aria-label="Level">${[1,2,3,4,5].map(i=>`<option value="${i}">${roman(i)}</option>`).join('')}</select><button class="btn" data-e="dadd">Add</button></div>
+    draft=`<div class="draft"><div class="drow"><select id="dench" aria-label="Enchantment">${opts}</select><select id="dlv" aria-label="Level">${[1,2,3,4,5].map(i=>`<option value="${i}">${roman(i)}</option>`).join('')}</select><button class="btn" data-e="dadd">Add</button></div>
       <p class="small">${Object.keys(E.draft.ench).length?'On this book: '+esc(listTxt(E.draft.ench)):'Nothing added yet.'}</p>
       <label class="exrow"><span>Anvil uses on this book</span><select id="dwork">${[0,1,2,3,4].map(i=>`<option value="${i}"${i===E.draft.work?' selected':''}>${i}</option>`).join('')}</select></label>
       <div class="drow"><button class="btn primary" data-e="dsave">Save book</button><button class="btn" data-e="dcancel">Cancel</button></div></div>`;
@@ -71,7 +70,6 @@ function renderPlanner(){
   <div class="erows">${rowsHtml(t,E.want,'')}</div>
   <details class="adv"${open?' open':''}><summary>Already have books or enchantments?</summary>
     <h3 class="eh3">Books you have</h3>
-    <p class="small">Enter your books at any level, like 3× Protection II. Two of the same level make the next level up. For any enchantment you list here, the planner only uses your books for it and won’t add a new one.</p>
     <div class="drow"><select id="iench" aria-label="Enchantment">${enchOpts}</select><select id="ilv" aria-label="Level">${[1,2,3,4,5].map(i=>`<option value="${i}">${roman(i)}</option>`).join('')}</select><select id="icount" aria-label="How many">${Array.from({length:16},(_,i)=>`<option value="${i+1}">${i+1}×</option>`).join('')}</select><button class="btn" data-e="invadd">Add</button></div>
     ${stacks?`<ul class="cbooks">${stacks}</ul>`:''}
     <h3 class="eh3">Books with several enchantments</h3>
@@ -85,7 +83,6 @@ function renderPlanner(){
 }
 function renderSetInputs(){
   return `<div class="eactions"><button class="btn primary" data-e="setpreset">Use god presets</button><button class="btn" data-e="setclear">Clear all</button></div>
-  <p class="small">The set plan uses new, max-level books. To use books you already have, plan one piece at a time.</p>
   <div class="pieces">${SETS.map(t=>{const w=E.set[t],keys=Object.keys(w).sort(enchOrder),openP=E.setOpen===t;
     return `<div class="piece${openP?' open':''}"><button class="phead" data-setopen="${t}" aria-expanded="${openP}">${img(TYPE[t].ic,'ic big')}<span><b>${esc(TYPE[t].n)}</b><small>${keys.length?esc(keys.map(k=>lvTxt(k,w[k])).join(', ')):'Nothing picked'}</small></span><span class="chev" aria-hidden="true">${openP?'Done':'Edit'}</span></button>${openP?`<div class="erows">${rowsHtml(t,w,t+':')}</div>`:''}</div>`}).join('')}</div>`;
 }
@@ -103,19 +100,10 @@ function stepsHtml(r,type){
     h+=`<li><div class="step${isDone?' done':''}" role="button" tabindex="0" aria-pressed="${isDone}" data-step="${sig}:${i}">
       <div class="shead"><span>${isDone?'<span class="tick" aria-hidden="true">✓</span> ':''}Step ${i+1}${s.pre?' <small class="prep">Prep</small>':''}</span><span class="cost">${s.cost} level${s.cost===1?'':'s'}</span></div>
       <div class="sbody">${slotHtml(s.left,type)}<span class="plus" aria-hidden="true">+</span>${slotHtml(s.right,type)}</div>
-      <p class="sres">Needs level ${s.cost} or higher. Makes ${esc(s.res.isItem?'your '+TYPE[type].n.toLowerCase():'a book')} with ${esc(listTxt(s.res.ench))}.${lu.length?` <span class="lu">Levels up: ${esc(lu.join(', '))}</span>`:''}</p>
+      <p class="sres">Makes ${esc(s.res.isItem?'your '+TYPE[type].n.toLowerCase():'a book')}: ${esc(listTxt(s.res.ench))}${lu.length?` <span class="lu">Levels up: ${esc(lu.join(', '))}</span>`:''}</p>
       <p class="tapnote">${isDone?'Done. Tap to undo.':'Tap when done'}</p></div></li>`;
   });
   return h+'</ol>';
-}
-function compareHtml(r){
-  const b=r.bookFirst;if(!b)return '';
-  if(b.ok){const d=b.cost-r.plan.cost;return `<div class="cmp"><b>Compared with one big book</b><p>Combining every book into one first, then adding it last, would cost ${b.cost} levels${d>0?`, ${d} more than this plan`:d===0?', the same as this plan':''}.</p></div>`}
-  return `<div class="cmp bad"><b>One big book won’t work here</b><p>Combining every book into one first hits <b>Too Expensive!</b> at step ${b.overStep} of ${b.steps}, which would cost ${b.overCost} levels.${b.overStep===b.steps?` That last step pays ${b.bookValue} levels for the book’s enchantments plus ${b.bookPenalty} for the book’s own anvil uses.`:''}</p></div>`;
-}
-function renameTip(r,type){
-  const i=r.plan.steps.findIndex(s=>s.left.isItem&&s.cost<=38);if(i<0)return '';
-  return `<div class="tip"><b>Want a custom name?</b> Type it in step ${i+1}, your first step with the ${esc(TYPE[type].n.toLowerCase())}. It adds just 1 level there. Renaming on its own later costs 1 level plus the item’s penalty, which is ${pen(r.plan.work)+1} levels after this plan.</div>`;
 }
 function bookList(items,scope){return `<ul class="shop">${items.map(([id,lv,n,target,d])=>{
   let ctl='';
@@ -127,22 +115,19 @@ function bookList(items,scope){return `<ul class="shop">${items.map(([id,lv,n,ta
   return `<li>${bookImg()}<div><b>${n>1?n+'× ':''}${esc(lvTxt(id,lv))}</b><span>${esc(SOURCES[EBY[id].src])}</span>${ctl}</div></li>`}).join('')}</ul>`}
 function singleResult(r){
   const type=E.type;
-  if(r.none)return '<div class="warn"><b>Too Expensive!</b><p>Every order has a step over 39 levels, which the anvil refuses. Try fewer enchantments, books with fewer anvil uses, or a fresh item.</p></div>';
-  let h=`<div class="esum"><div><b>${r.plan.cost}</b><span>levels in total</span></div><div><b>${r.plan.steps.length}</b><span>anvil step${r.plan.steps.length===1?'':'s'}</span></div><div><b>${r.plan.max}</b><span>most for one step</span></div></div>`;
-  if(r.approx||r.pre.length)h+=`<p class="note">You have a lot of books, so some identical low-level books are combined first (marked Prep) to keep this fast. The total may be a level or two above the true minimum.</p>`;
+  if(r.none)return '<div class="warn"><b>Too Expensive!</b><p>Every order has a step over 39 levels.</p></div>';
+  let h=`<div class="esum"><div><b>${r.plan.cost}</b><span>levels in total</span></div><div><b>${r.plan.steps.length}</b><span>anvil step${r.plan.steps.length===1?'':'s'}</span></div><div><b>${r.plan.max}</b><span>most for one step</span></div></div>
+  <div class="eactions"><button class="btn small" data-go="tools|xp:${r.plan.max}">XP needed for level ${r.plan.max}</button></div>`;
+  if(r.approx||r.pre.length)h+=`<p class="note">Prep steps combine identical books first. The total may be 1 or 2 levels over the minimum.</p>`;
   const sf=shortfalls();
   sf.forEach(x=>{if(x.need)h+=`<div class="warn"><p>To reach ${esc(lvTxt(x.id,x.target))}, you need 1 more ${esc(lvTxt(x.id,x.need))}. With what you have, the best is ${esc(lvTxt(x.id,x.top||1))}.</p></div>`});
   const miss=r.missing.filter(m=>!sf.some(x=>x.id===m.id&&x.need));
-  if(miss.length)h+=`<div class="warn"><p>This plan can’t reach ${esc(miss.map(m=>lvTxt(m.id,m.want)).join(', '))}. It gets as close as it can without a step going over 39 levels.</p></div>`;
-  if(r.leftover.length){
-    const lowWaste=r.leftover.some(x=>{const k=Object.keys(x.ench);return k.length===1&&r.plan.ench[k[0]]&&r.plan.ench[k[0]]>x.ench[k[0]]});
-    h+=`<h3 class="eh3">Not used</h3><ul class="shop">${r.leftover.map(x=>`<li>${bookImg()}<div><b>${x.n>1?x.n+'× ':''}${esc(listTxt(x.ench))}</b></div></li>`).join('')}</ul>${lowWaste?'<p class="small">Different levels don’t add up. Protection II plus Protection I stays Protection II, so the lower book would be wasted.</p>':''}`;
-  }
+  if(miss.length)h+=`<div class="warn"><p>Can’t reach ${esc(miss.map(m=>lvTxt(m.id,m.want)).join(', '))} without going over 39 levels.</p></div>`;
+  if(r.leftover.length)h+=`<h3 class="eh3">Not used</h3><ul class="shop">${r.leftover.map(x=>`<li>${bookImg()}<div><b>${x.n>1?x.n+'× ':''}${esc(listTxt(x.ench))}</b></div></li>`).join('')}</ul>`;
   const auto=singleSpec().books.filter(b=>b.tag==='new').map(b=>{const id=Object.keys(b.ench)[0];return [id,b.ench[id],b.count,b.target,b.d]});
-  if(auto.length)h+=`<h3 class="eh3">Books to get</h3><p class="small">Short on a full-level book? Tap Build from to use two of the level below instead.</p>${bookList(auto,'one')}`;
-  h+=compareHtml(r)+renameTip(r,type);
-  h+=`<h3 class="eh3">Anvil steps</h3><p class="small">Left goes in the first anvil slot, right goes in the second. Tap a step when you’ve done it.</p>`+stepsHtml(r,type);
-  h+=`<p class="note">Your finished ${esc(TYPE[type].n.toLowerCase())} will have ${r.plan.work} anvil uses, so any later anvil job on it adds ${pen(r.plan.work)} levels.${r.plan.ench.mending?' With Mending, you won’t need anvil repairs.':''}</p>`;
+  if(auto.length)h+=`<h3 class="eh3">Books to get</h3>${bookList(auto,'one')}`;
+  h+=`<h3 class="eh3">Anvil steps</h3>`+stepsHtml(r,type);
+  h+=`<p class="note">Finished: ${r.plan.work} anvil uses, +${pen(r.plan.work)} levels on later anvil jobs.</p>`;
   return h;
 }
 function setResult(rs){
@@ -156,8 +141,8 @@ function setResult(rs){
   rs.forEach((r,i)=>{const t=SETS[i];if(!Object.keys(E.set[t]).length)return;
     if(r.none){h+=`<details class="pplan"><summary>${img(TYPE[t].ic)}<span><b>${esc(TYPE[t].n)}</b><small>Too Expensive! Try fewer enchantments.</small></span></summary></details>`;return}
     const sig=sigOf(t,r.plan.steps),d=(DONE[sig]||[]).length,n=r.plan.steps.length,openP=E.setPlanOpen===t;
-    h+=`<details class="pplan" data-pplan="${t}"${openP?' open':''}><summary>${img(TYPE[t].ic)}<span><b>${esc(TYPE[t].n)}</b><small>${r.plan.cost} levels, ${n} step${n===1?'':'s'}${d?`, ${d} done`:''}</small></span></summary><div class="ppbody">${compareHtml(r)}${stepsHtml(r,t)}</div></details>`});
-  h+='</div><div class="tip"><b>Want custom names?</b> Type the name during the first step that uses each piece. It adds just 1 level then, instead of 1 plus the penalty later.</div>';
+    h+=`<details class="pplan" data-pplan="${t}"${openP?' open':''}><summary>${img(TYPE[t].ic)}<span><b>${esc(TYPE[t].n)}</b><small>${r.plan.cost} levels, ${n} step${n===1?'':'s'}${d?`, ${d} done`:''}</small></span></summary><div class="ppbody">${stepsHtml(r,t)}</div></details>`});
+  h+='</div>';
   return h;
 }
 let worker=null,wid=0;const pending={};
@@ -192,8 +177,8 @@ function renderByItem(){
   const uniq=[];
   list.forEach(e=>{if(!CONFLICTS[e.id])return;const g=uniq.find(g=>g.every(o=>conflicts(o,e.id)));if(g)g.push(e.id);else uniq.push([e.id])});
   for(let i=uniq.length-1;i>=0;i--)if(uniq[i].length<2)uniq.splice(i,1);
-  return `<h2 class="eh">Enchantments by item</h2><p class="lede">See what each item can take and where it comes from.</p>${itemChips(t,'btype')}
-  <div class="bihead">${img(TYPE[t].ic,'ic big')}<h3>${esc(TYPE[t].n)}</h3><button class="btn primary" data-plan="${t}">Plan god ${esc(TYPE[t].n.toLowerCase())}</button></div>
+  return `${itemChips(t,'btype')}
+  <div class="bihead">${linkItem(TYPE[t].ic,img(TYPE[t].ic,'ic big'))}<h3>${esc(TYPE[t].n)}</h3><button class="btn primary" data-plan="${t}">Plan god ${esc(TYPE[t].n.toLowerCase())}</button></div>
   ${tab.length?`<h3 class="eh3">From the enchanting table</h3><ul class="elist">${tab.map(row).join('')}</ul>`:''}
   ${book.length?`<h3 class="eh3">Book and anvil only</h3><ul class="elist">${book.map(row).join('')}</ul>`:''}
   ${uniq.length?`<h3 class="eh3">Pick only one from each group</h3><ul class="groups">${uniq.map(g=>`<li>${esc(g.map(id=>EBY[id].name).join(', ').replace(/, ([^,]*)$/,' or $1'))}</li>`).join('')}</ul>`:''}`;
@@ -208,55 +193,23 @@ function enchCard(e,open){
   <dl><dt>Works on</dt><dd>${esc(items.join(', '))}</dd>
   ${cf.length?`<dt>Can’t combine with</dt><dd>${esc(cf.join(', '))}</dd>`:''}
   <dt>Where to get it</dt><dd>${esc(SOURCES[e.src])}</dd>
-  <dt>Anvil cost</dt><dd>${e.mb} level${e.mb>1?'s':''} per enchantment level from a book, ${e.mi} from an item.</dd></dl></div></details>`;
+  <dt>Anvil cost</dt><dd>${e.mb} level${e.mb>1?'s':''} per enchantment level from a book, ${e.mi} from an item.</dd></dl>
+  ${NO_LIBRARIAN.includes(e.id)?'':`<div class="eactions"><button class="btn small" data-go="trade|hunt:${e.id}">Librarian odds</button></div>`}</div></details>`;
 }
 function renderAll(){
   const q=E.q.trim().toLowerCase();
   const list=ENCH.filter(e=>!q||e.name.toLowerCase().includes(q)||ITEM_TYPES.some(([k,n])=>n.toLowerCase().includes(q)&&canTake(k,e.id)));
-  return `<h2 class="eh">All enchantments</h2><p class="lede">Every Java Edition enchantment. Search by name or by item.</p>
-  <input id="eq" class="esearch" type="search" placeholder="Search, like “mending” or “boots”" value="${esc(E.q)}" aria-label="Search enchantments">
+  return `${searchBox(`id="eq" placeholder="Search, like “mending” or “boots”" value="${esc(E.q)}" aria-label="Search enchantments"`)}
   <div id="ealist">${list.length?list.map(e=>enchCard(e,E.openId===e.id)).join(''):'<p class="hint">No enchantments match.</p>'}</div>`;
 }
 
-/* how it works */
-function renderHow(){
-  return `<h2 class="eh">How enchanting works</h2><p class="lede">The rules behind the planner, so you can do it yourself.</p>
-  <section class="how"><h3>Two ways to enchant</h3>
-  <p>The <b>enchanting table</b> gives random enchantments for lapis lazuli and levels. Surround it with 15 bookshelves to unlock the level 30 option, the best one. It can’t give treasure enchantments like Mending.</p>
-  <p>The <b>anvil</b> adds exactly the enchantments you choose from enchanted books. That’s how you build god gear: collect the right books, then combine them.</p></section>
-  <section class="how"><h3>What an anvil step costs</h3>
-  <p>Each step costs the <b>enchantment cost</b> of what’s in the right slot, plus the <b>prior work penalty</b> of both items.</p>
-  <p>Enchantment cost is the final level of each enchantment times its multiplier. Books use a lower multiplier than items, so always put books in the right slot rather than a second enchanted item.</p>
-  <p>Example: Mending from a book costs 2 levels. Soul Speed III from a book costs 3 × 4 = 12.</p></section>
-  <section class="how"><h3>Prior work penalty</h3>
-  <p>Every anvil step makes the result more expensive to use again. Renaming alone doesn’t add to it.</p>
-  <table class="ptable"><thead><tr><th>Anvil uses</th><th>Extra levels</th></tr></thead><tbody>${[0,1,2,3,4,5].map(i=>`<tr><td>${i}</td><td>${pen(i)}</td></tr>`).join('')}</tbody></table>
-  <p>When two items are combined, the result’s use count is one more than the higher of the two.</p></section>
-  <section class="how"><h3>Too Expensive!</h3><p>In Survival, the anvil refuses any step that costs 40 levels or more, no matter how many levels you have. Once an item hits that, you can’t add to it anymore.</p></section>
-  <section class="how"><h3>Low-level books</h3>
-  <p>Two books with the <b>same enchantment at the same level</b> make one level higher, up to the max. Two Protection III make Protection IV, and eight Protection I can become Protection IV.</p>
-  <p><b>Different levels don’t add up.</b> Protection II plus Protection I stays Protection II, so the I is wasted.</p>
-  <p>A level-up is charged at the new level, so Protection III + III costs 4 levels plus penalties. The planner also tries leveling up right on the armor, which is sometimes cheaper than merging the books first.</p></section>
-  <section class="how"><h3>Why not make one big book?</h3>
-  <p>It seems tidy to combine every book into one, then put it on the armor last. But that last step pays for every enchantment on the book at once, plus the book’s own penalty.</p>
-  <p>For 7-enchantment god boots, the full book is worth 43 levels, and after three anvil uses it carries a 7-level penalty. That last step would cost 50 levels: <b>Too Expensive!</b> The cheapest working order puts the boots in the very first step and costs 66 levels in total.</p>
-  <p>The planner shows this comparison under every plan.</p></section>
-  <section class="how"><h3>How to keep it cheap</h3>
-  <p><b>Keep the penalty off your item.</b> Combining some books with each other puts the penalty on books that get used up anyway. Just don’t merge everything into one book (see above).</p>
-  <p><b>Pair things evenly.</b> Combining two items with the same number of uses keeps the count low.</p>
-  <p><b>Put expensive enchantments in the right slot as few times as possible.</b> Order matters: Soul Speed III on the left with Mending on the right costs 2 levels, but swapped it costs 12.</p>
-  <p><b>Rename in your first step with the item</b> if you want a name. It adds just 1 level then. Renaming on its own later costs 1 level plus the item’s penalty.</p></section>
-  <section class="how"><h3>Repairs</h3>
-  <p>Repairing with raw materials on an anvil costs 1 level per unit, and each unit restores a quarter of the durability. It still adds to the prior work penalty, so god gear should use <b>Mending</b> instead.</p>
-  <p>A <b>grindstone</b> removes all enchantments except curses and resets the penalty, giving back some experience. Repairing in a crafting grid also removes the enchantments.</p></section>`;
-}
-
 /* shell */
-const SUBS=[['planner','Planner'],['item','By item'],['all','All enchantments'],['how','How it works']];
+const SUBS=[['planner','Planner'],['item','By item'],['all','All enchantments']];
 function renderEnch(){
   const body=document.getElementById('ebody');if(!body)return;
+  if(!SUBS.some(s=>s[0]===E.sub))E.sub='planner';
   document.getElementById('esubs').innerHTML=SUBS.map(([k,l])=>`<button data-sub="${k}" aria-pressed="${k===E.sub}">${l}</button>`).join('');
-  body.innerHTML=E.sub==='planner'?renderPlanner():E.sub==='item'?renderByItem():E.sub==='all'?renderAll():renderHow();
+  body.innerHTML=E.sub==='planner'?renderPlanner():E.sub==='item'?renderByItem():renderAll();
   if(E.sub==='planner')runPlanner();
   if(E.sub==='all'&&E.openId){const el=document.getElementById('e-'+E.openId);if(el)el.scrollIntoView({block:'center'})}
   saveE();
@@ -272,7 +225,7 @@ function showTab(tab){
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   const d=b.dataset;
-  if(d.tab){showTab(d.tab);return}
+  if(d.tab){navClear();showTab(d.tab);return}
   if(!b.closest('#tab-ench'))return;
   if(d.sub){E.sub=d.sub;E.openId=null;renderEnch();setHash('ench/'+E.sub);return}
   if(d.ptype){E.type=d.ptype;E.want={...presetFor(E.type)};E.existing={};E.uses=0;E.custom=[];E.inv=[];E.draft=null;renderEnch();return}
@@ -287,8 +240,8 @@ document.addEventListener('click',e=>{
   if(d.reset){delete DONE[d.reset];saveDone();if(lastRes){const box=document.getElementById('eresult');box.innerHTML=lastRes.mode==='set'?setResult(lastRes.rs):singleResult(lastRes.r)}return}
   if(d.invinc!==undefined){E.inv[+d.invinc].n=Math.min(64,E.inv[+d.invinc].n+1);renderEnch();return}
   if(d.invdec!==undefined){const x=E.inv[+d.invdec];x.n--;if(x.n<=0)E.inv.splice(+d.invdec,1);renderEnch();return}
-  if(d.invrm!==undefined){E.inv.splice(+d.invrm,1);renderEnch();return}
-  if(d.rmbook!==undefined){E.custom.splice(+d.rmbook,1);renderEnch();return}
+  if(d.invrm!==undefined){undoable(E.inv,+d.invrm,'Books removed',renderEnch);return}
+  if(d.rmbook!==undefined){undoable(E.custom,+d.rmbook,'Book removed',renderEnch);return}
   switch(d.e){
     case 'preset':E.want={...presetFor(E.type)};renderEnch();break;
     case 'clear':E.want={};renderEnch();break;
@@ -311,7 +264,7 @@ document.addEventListener('change',e=>{
   else if(t.dataset.e==='uses'){E.uses=+t.value;saveE();runPlanner()}
 });
 document.addEventListener('input',e=>{
-  if(e.target.id==='eq'){E.q=e.target.value;E.openId=null;const l=document.getElementById('ealist');const q=E.q.trim().toLowerCase();
+  if(e.target.id==='eq'){E.q=e.target.value;saveE();E.openId=null;const l=document.getElementById('ealist');const q=E.q.trim().toLowerCase();
     const list=ENCH.filter(x=>!q||x.name.toLowerCase().includes(q)||ITEM_TYPES.some(([k,n])=>n.toLowerCase().includes(q)&&canTake(k,x.id)));
     l.innerHTML=list.length?list.map(x=>enchCard(x,false)).join(''):'<p class="hint">No enchantments match.</p>';}
 });
