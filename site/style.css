@@ -23,7 +23,10 @@ html{font-synthesis-weight:none}
   --slot:#202226;--slot-lo:#0b0c0d;--slot-hi:#55585f;
   --row:#27342e;--row-hover:#2f3f37;--line:rgba(228,236,230,.2);
   --accent:#46c57c;--accent-ink:#0d1a12;--field:#101112;--on-panel:#e6e9ec;}
-html{scroll-padding-top:env(safe-area-inset-top,0px);}
+html{scroll-padding-top:env(safe-area-inset-top,0px);touch-action:manipulation;overscroll-behavior:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* app feel: no long-press text selection or callouts, except where you type */
+body{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+input,textarea,[contenteditable]{-webkit-touch-callout:default;-webkit-user-select:text;user-select:text}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--body);}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -431,6 +434,8 @@ html.card-open{overflow:hidden}
 .icl{flex:1;display:flex;flex-direction:column;min-width:0}.icl b{font:600 16px var(--disp)}.icl small{font-size:13px;opacity:.85}
 .ictab{font:400 13px var(--disp);opacity:.85;white-space:nowrap}
 .iclist.inpanel{margin:8px 0 4px}
+.icinfo{display:flex;align-items:center;min-height:44px;padding:8px 12px;background:rgba(0,0,0,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .icinfo{background:rgba(255,255,255,.07)}}
 
 /* back bar after jumping to another tab, and toasts */
 .navback,.toast{position:fixed;z-index:30;bottom:calc(84px + env(safe-area-inset-bottom,0px))}

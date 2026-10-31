@@ -1,5 +1,5 @@
-/* ---------- tab shell, swiping, events ---------- */
-const RENDER={brew:renderBrew,trade:renderTrade,smelt:renderSmelt,smith:renderSmith,banner:renderBanner,food:renderFood,tools:renderTools};
+/* ---------- tab shell, events ---------- */
+const RENDER={brew:renderBrew,trade:renderTrade,smith:renderSmith,banner:renderBanner,food:renderFood,tools:renderTools};
 let curTab='craft';
 function renderTab(t){const el=document.getElementById('tab-'+t);if(el&&RENDER[t]){el.innerHTML=RENDER[t]();if(t==='smith'&&TS.smith.sub==='trim')drawTrimPreview();if(t==='banner')drawBanners()}saveTS();updateFades()}
 function showTab(tab,keepScroll){
@@ -16,14 +16,9 @@ function fadeOne(el){const max=el.scrollWidth-el.clientWidth;el.classList.toggle
 function updateFades(){requestAnimationFrame(()=>document.querySelectorAll(FADE_SEL).forEach(fadeOne))}
 document.addEventListener('scroll',e=>{const t=e.target;if(t.matches&&t.matches(FADE_SEL))fadeOne(t)},true);
 window.addEventListener('resize',updateFades);
-/* swipe left or right on the page to change tabs; rows that scroll sideways keep their own swipes */
-(function(){let sx=0,sy=0,st=0,skip=false;
-  document.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();
-    skip=!!e.target.closest('input,select,textarea,canvas,#stage3d,.sheet,.tabs,.ichips,.esubs,.cats,.pmode,.dtable,.icard')},{passive:true});
-  document.addEventListener('touchend',e=>{if(skip)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-    if(Date.now()-st>700||Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.5)return;
-    const i=TABS.indexOf(curTab),n=dx<0?i+1:i-1;if(n<0||n>=TABS.length)return;navClear();showTab(TABS[n])},{passive:true});
-})();
+/* feel like an app: no pinch zoom (iPhone ignores user-scalable=no, so block its gesture events and two-finger moves) */
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
 const toggleKey=(obj,k)=>{if(obj[k])delete obj[k];else obj[k]=1};
 function stepToggle(store,key){const i=key.lastIndexOf(':'),sig=key.slice(0,i),n=+key.slice(i+1),s=new Set(store[sig]||[]);s.has(n)?s.delete(n):s.add(n);if(s.size)store[sig]=[...s];else delete store[sig]}
 function rerender(){const y=window.scrollY;renderTab(curTab);window.scrollTo(0,y)}
@@ -41,15 +36,6 @@ document.addEventListener('click',e=>{
   if(d.oreset){delete B.done[d.oreset];rerender();return}
   if(d.bing){B.ing=d.bing;rerender();return}
   if(d.prof){T.sel=d.prof;rerender();return}
-  if(d.hadd){const id=document.getElementById('hid').value,lv=document.getElementById('hlv').value==='max'?1:0;if(!T.targets.some(t=>t.id===id&&t.lv===lv))T.targets.push({id,lv});rerender();return}
-  if(d.hplan){const w=Object.keys(E.mode==='set'?Object.assign({},...SETS.map(s=>E.set[s])):E.want);w.filter(id=>!NO_LIBRARIAN.includes(id)).forEach(id=>{if(!T.targets.some(t=>t.id===id))T.targets.push({id,lv:1})});rerender();return}
-  if(d.hrm!==undefined){undoable(T.targets,+d.hrm,'Book removed',rerender);return}
-  if(d.hgot!==undefined){const t=T.targets[+d.hgot],e2=EBY[t.id];T.log.push({name:t.lv&&e2.max>1?lvTxt(t.id,e2.max):e2.name,n:T.count});T.targets.splice(+d.hgot,1);T.count=0;rerender();return}
-  if(d.hinc){T.count++;rerender();return}if(d.hdec){T.count=Math.max(0,T.count-1);rerender();return}if(d.hzero){T.count=0;rerender();return}
-  if(d.vadd){T.vills.push({name:document.getElementById('vname').value.trim(),prof:document.getElementById('vprof').value,note:document.getElementById('vnote').value.trim(),books:[]});rerender();return}
-  if(d.vrm!==undefined){undoable(T.vills,+d.vrm,'Villager removed',rerender);return}
-  if(d.vbadd!==undefined){const i=+d.vbadd,id=document.querySelector(`[data-vbid="${i}"]`).value,lv=Math.min(+document.querySelector(`[data-vblv="${i}"]`).value,EBY[id].max);T.vills[i].books.push({id,lv});rerender();return}
-  if(d.vbrm){const [i,j]=d.vbrm.split(':').map(Number);T.vills[i].books.splice(j,1);rerender();return}
   if(d.tall){const h=M.pieces.helmet;['chest','legs','boots'].forEach(k=>{M.pieces[k]={...h}});rerender();return}
   if(d.nup){toggleKey(M.up,d.nup);rerender();return}
   if(d.nset){M.up={};(d.nset==='armor'?['Helmet','Chestplate','Leggings','Boots']:d.nset==='all'?NETHERITE_GEAR:[]).forEach(g=>M.up[g]=1);rerender();return}
@@ -66,23 +52,20 @@ document.addEventListener('change',e=>{const t=e.target,d=t.dataset||{},M=TS.smi
   else if(d.nowned){M.owned=+t.value;rerender()}else if(d.ndia){M.diag=t.checked?1:0;rerender()}
 });
 document.addEventListener('input',e=>{const t=e.target,d=t.dataset||{};
-  if(d.sq){TS.smelt.q=t.value;const tmp=document.createElement('div');tmp.innerHTML=renderRecipes();document.getElementById('srows').innerHTML=tmp.querySelector('#srows').innerHTML;saveTS()}
-  else if(d.xp==='cur'||d.xp==='target'){TS.tools[d.xp]=t.value;document.getElementById('xpout').innerHTML=xpOut();saveTS()}
+  if(d.xp==='cur'||d.xp==='target'){TS.tools[d.xp]=t.value;document.getElementById('xpout').innerHTML=xpOut();saveTS()}
   else if(d.pt){TS.tools[d.pt]=t.value;portalSync(d.pt);saveTS()}
 });
 /* crafting tab: for items that aren't crafted, list where they do come from */
 const _renderPanel=renderPanel;
 renderPanel=function(){_renderPanel();const n=state.sel;if(!n)return;
-  if(!byOut.has(n)){const p=document.querySelector('#panel .plain'),info=itemInfo(n,'craft');if(p&&info.length)p.insertAdjacentHTML('afterend',`<div class="iclist inpanel">${info.map(d=>`<button type="button" class="icgo" data-go="${d.tab}|${esc(d.arg)}"><span class="icl"><b>${esc(d.label)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}</span><span class="ictab">${TAB_NAMES[d.tab]} ›</span></button>`).join('')}</div>`);return}
+  if(!byOut.has(n)){const p=document.querySelector('#panel .plain'),info=itemInfo(n,'craft');if(p&&info.length)p.insertAdjacentHTML('afterend',cardRows(info,' inpanel'));return}
   const rec=byOut.get(n)[state.variant]||byOut.get(n)[0],ings=[...new Set(rec.grid.filter(x=>x&&!TAGS[x]))],sm=ings.filter(x=>SMELT.some(s=>s[1]===x)&&!SMELT.filter(s=>s[1]===x).every(s=>/ Ore$/.test(s[0])));
-  const box=document.querySelector('#panel .ings');if(sm.length&&box)box.insertAdjacentHTML('afterend',`<p class="note">Smelted: ${sm.map(x=>`<button class="link" data-go="smelt|${esc(x)}">${esc(x)}</button>`).join(', ')}</p>`)};
+  const box=document.querySelector('#panel .ings');if(sm.length&&box)box.insertAdjacentHTML('afterend',`<p class="note">Smelted: ${sm.map(x=>`${esc(x)} (from ${esc(smeltFrom(x))})`).join(', ')}</p>`)};
 document.querySelectorAll('.tabs img[data-ic]').forEach(i=>{i.src=icon(i.dataset.ic)});
 /* start on the tab in the link, or else the tab used last */
-(function(){let h=decodeURIComponent(location.hash.slice(1)).split('/')[0];if(h==='xp'||h==='portal')h='tools';
+(function(){let h=decodeURIComponent(location.hash.slice(1)).split('/')[0];if(OLD_TABS[h])h=OLD_TABS[h];
   if(!h&&TS.ui.last&&TABS.includes(TS.ui.last)&&TS.ui.last!=='craft')h=TS.ui.last;
   if(RENDER[h])showTab(h);else if(h==='ench'||(!location.hash&&TS.ui.last==='ench'))showTab('ench');else if(state.sel)renderPanel();updateFades()})();
-/* one-time tip on phones: swiping changes tabs */
-if(!TS.ui.swipeTip&&matchMedia('(max-width:859px)').matches){setTimeout(()=>toast('Tip: swipe left or right to switch tabs',null,null,4500),1200);TS.ui.swipeTip=1;saveTS()}
 /* offline copy: the new version installs in the background, then a Reload button appears */
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){
   const ready=w=>{if(w&&navigator.serviceWorker.controller)toast('Update ready','Reload',()=>w.postMessage('skip'),0)};

@@ -24,22 +24,23 @@ function linkIndex(){
     tmpl:new Set(TRIMS.map(t=>t[0]+' Armor Trim')),tmat:new Set(TRIM_MATS),pat:new Map(BAN_PAT.filter(p=>p.item).map(p=>[p.item,p]))};
 }
 const gearType=n=>{const t=ITEM_TYPES.find(([k,l])=>n===l||n.endsWith(' '+l));return t?t[0]:null};
-const SINGLE_VIEW=['craft','smelt','food','tools']; // tabs with one view: a link back to the same tab adds nothing
+const SINGLE_VIEW=['craft','food','tools']; // tabs with one view: a link back to the same tab adds nothing
+const smeltFrom=n=>{const so=linkIndex().smOut.get(n);return so?[...new Set(so.map(r=>r[0]))].slice(0,2).join(' or '):''};
+/* rows with a tab are jump buttons; rows without one are plain facts (smelting has no tab of its own) */
 function itemInfo(n,here){
-  const X=linkIndex(),out=[],go=(label,tab,arg,sub)=>{if(!(tab===here&&SINGLE_VIEW.includes(tab)))out.push({label,tab,arg:arg||'',sub})};
+  const X=linkIndex(),out=[],go=(label,tab,arg,sub)=>{if(!(tab===here&&SINGLE_VIEW.includes(tab)))out.push({label,tab,arg:arg||'',sub})},fact=(label,sub)=>out.push({label,sub});
   const uses=usedIn.get(n),nu=uses?uses.size:0,ut=`Used to craft ${nu} item${nu===1?'':'s'}`;
   if(byOut.has(n))go('Recipe','craft',n,nu?ut:'');else if(nu)go(ut,'craft',n);
-  const so=X.smOut.get(n);if(so)go('Smelt it','smelt',n,'from '+[...new Set(so.map(r=>r[0]))].slice(0,2).join(' or '));
-  const si=X.smIn.get(n);if(si)go('Smelts into '+si[0][1],'smelt',n);
-  if(X.fuel.has(n)){const per=X.fuel.get(n);go('Furnace fuel','smelt','fuel:'+n,`smelts ${per} item${per===1?'':'s'}`)}
-  if(['Furnace','Blast Furnace','Smoker'].includes(n))go('Smelting recipes','smelt','');
+  if(X.smOut.has(n))fact('Smelt it','from '+smeltFrom(n));
+  const si=X.smIn.get(n);if(si)fact('Smelts into '+si[0][1]);
+  if(X.fuel.has(n)){const per=X.fuel.get(n);go('Furnace fuel','tools','fuel:'+n,`smelts ${per} item${per===1?'':'s'}`)}
   const p=X.pot.get(n);if(p)go('How to brew it','brew','p:'+p.id);
   if(X.ing.has(n))go('Brewing ingredient','brew','i:'+n);
   if(n==='Brewing Stand')go('Potions','brew','');
   (X.ws.get(n)||[]).forEach(v=>go(v.name+' workstation','trade',v.id));
   (X.sells.get(n)||[]).forEach(v=>go('Sold by '+v.name.toLowerCase(),'trade',v.id));
   (X.buys.get(n)||[]).slice(0,2).forEach(v=>go(v.name+' buys it','trade',v.id));
-  if(n==='Enchanted Book'){go('Librarian odds','trade','hunt');go('All enchantments','ench','all')}
+  if(n==='Enchanted Book')go('All enchantments','ench','all');
   if(n==='Netherite Upgrade'||['Netherite Ingot','Netherite Scrap','Ancient Debris'].includes(n)||(n.startsWith('Netherite ')&&NETHERITE_GEAR.includes(n.slice(10))))go('Netherite upgrade','smith','net');
   if(X.tmpl.has(n))go('Template checklist','smith','temp:'+n);
   if(X.tmat.has(n))go('Trim material','smith','trim');
@@ -54,17 +55,19 @@ function itemInfo(n,here){
   return out;
 }
 /* wrap something in a button that opens the item card, only when another tab has something on the item */
-function linkItem(name,inner,here){here=here||(typeof curTab==='string'?curTab:'');return itemInfo(name,here).length?`<button type="button" class="ilink" data-item="${esc(name)}" data-here="${here}">${inner}</button>`:inner}
+function linkItem(name,inner,here){here=here||(typeof curTab==='string'?curTab:'');return itemInfo(name,here).some(d=>d.tab)?`<button type="button" class="ilink" data-item="${esc(name)}" data-here="${here}">${inner}</button>`:inner}
 const linkInl=(name,text)=>linkItem(name,esc(text||name)).replace('class="ilink"','class="ilink inl"');
 
 /* the item card */
+const cardRows=(info,cls='')=>`<div class="iclist${cls}">${info.map(d=>{const t=`<span class="icl"><b>${esc(d.label)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}</span>`;
+  return d.tab?`<button type="button" class="icgo" data-go="${d.tab}|${esc(d.arg)}">${t}<span class="ictab">${TAB_NAMES[d.tab]} ›</span></button>`:`<div class="icinfo">${t}</div>`}).join('')}</div>`;
 let cardFrom=null;
 function openCard(name,here){
   const card=document.getElementById('icard'),box=card&&card.querySelector('.icard-box');if(!box)return;
   const info=itemInfo(name,here),bp=linkIndex().pat.get(name);
   box.innerHTML=`<div class="ichead">${img(name,'ic big')}<h2 id="icard-title">${esc(name)}</h2><button type="button" class="sbtn" data-icclose="1" aria-label="Close">✕</button></div>
   ${bp&&!byOut.has(name)&&bp.how?`<p class="small">${esc(bp.how)}</p>`:''}
-  <div class="iclist">${info.map(d=>`<button type="button" class="icgo" data-go="${d.tab}|${esc(d.arg)}"><span class="icl"><b>${esc(d.label)}</b>${d.sub?`<small>${esc(d.sub)}</small>`:''}</span><span class="ictab">${TAB_NAMES[d.tab]} ›</span></button>`).join('')}</div>`;
+  ${cardRows(info)}`;
   cardFrom=document.activeElement;card.hidden=false;document.documentElement.classList.add('card-open');
   const f=box.querySelector('.icgo');if(f)f.focus({preventScroll:true});
 }
@@ -78,14 +81,13 @@ function updateBackBar(){const b=document.getElementById('navback');if(!b)return
 function goTo(tab,arg){
   closeCard();cardFrom=null;NAV.push(navSnap());if(NAV.length>20)NAV.shift();
   const i=arg.indexOf(':'),k=i<0?arg:arg.slice(0,i),v=i<0?'':arg.slice(i+1);let at=null;
-  if(tab==='smelt'){const S=TS.smelt;if(k==='fuel'){S.sub='fuel';at=v}else{S.sub='recipes';S.q=arg}}
-  else if(tab==='brew'){const B=TS.brew;if(k==='p'){B.sub='potion';B.sel=v}else if(k==='i'){B.sub='ing';B.ing=v}}
-  else if(tab==='trade'){const T=TS.trade;if(k==='hunt'){T.sub='hunt';if(v&&!T.targets.some(t=>t.id===v))T.targets.push({id:v,lv:1})}else if(arg){T.sub='prof';T.sel=arg}}
+  if(tab==='brew'){const B=TS.brew;if(k==='p'){B.sub='potion';B.sel=v}else if(k==='i'){B.sub='ing';B.ing=v}}
+  else if(tab==='trade'){if(arg)TS.trade.sel=arg}
   else if(tab==='smith'){if(k){TS.smith.sub=k;at=v||null}}
   else if(tab==='food'){const f=linkIndex().food.get(arg);if(f&&f.bad)TS.food.hideBad=false;at=arg}
   else if(tab==='banner'){const B=TS.banner;B.sub='design';B.edit=null;if(arg){B.picking=true;at=arg}}
   else if(tab==='ench'){if(k==='item'){E.sub='item';E.byItem=v}else if(k==='all'){E.sub='all';E.q='';E.openId=v||null}else if(k==='planner')E.sub='planner'}
-  else if(tab==='tools'){if(k==='xp'&&v){TS.tools.cur=0;TS.tools.target=+v}at=k==='xp'?'#xp':'#portal'}
+  else if(tab==='tools'){if(k==='xp'&&v){TS.tools.cur=0;TS.tools.target=+v}at=k==='fuel'?v:k==='xp'?'#xp':'#portal'}
   showTab(tab);
   if(tab==='craft'){select(arg,false);const w=document.getElementById('panel-wrap');if(w)w.scrollIntoView({block:'start'})}
   if(at){const root=document.getElementById('tab-'+tab),el=at[0]==='#'?document.getElementById(at.slice(1)):root&&[...root.querySelectorAll('[data-at]')].find(x=>x.dataset.at.split('|').includes(at));if(el)flash(el)}

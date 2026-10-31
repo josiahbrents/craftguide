@@ -193,8 +193,7 @@ function enchCard(e,open){
   <dl><dt>Works on</dt><dd>${esc(items.join(', '))}</dd>
   ${cf.length?`<dt>Can’t combine with</dt><dd>${esc(cf.join(', '))}</dd>`:''}
   <dt>Where to get it</dt><dd>${esc(SOURCES[e.src])}</dd>
-  <dt>Anvil cost</dt><dd>${e.mb} level${e.mb>1?'s':''} per enchantment level from a book, ${e.mi} from an item.</dd></dl>
-  ${NO_LIBRARIAN.includes(e.id)?'':`<div class="eactions"><button class="btn small" data-go="trade|hunt:${e.id}">Librarian odds</button></div>`}</div></details>`;
+  <dt>Anvil cost</dt><dd>${e.mb} level${e.mb>1?'s':''} per enchantment level from a book, ${e.mi} from an item.</dd></dl></div></details>`;
 }
 function renderAll(){
   const q=E.q.trim().toLowerCase();

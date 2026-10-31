@@ -40,9 +40,6 @@ const PROFS=[
  ['mason','Mason','Stonecutter',['Clay Ball','Stone','Granite','Andesite','Diorite','Nether Quartz'],['Bricks','Chiseled Stone Bricks','Polished Granite','Terracotta','White Glazed Terracotta','Quartz Pillar'],'Sells building blocks, including every color of terracotta and glazed terracotta.'],
  ['cartographer','Cartographer','Cartography Table',['Paper','Glass Pane','Compass'],['Empty Map','Map','Item Frame','White Banner'],'Sells explorer maps that lead to ocean monuments, woodland mansions and trial chambers.']
 ].map(([id,name,ws,buys,sells,note])=>({id,name,ws,buys,sells,note}));
-const NO_LIBRARIAN=['soul_speed','swift_sneak','wind_burst'];
-/* Java: price = 2 + random(0 .. 4+10×level) + 3×level, doubled for treasure, capped at 64, plus one book */
-const bookPrice=(id,lv)=>{const t=['mending','frost_walker','binding_curse','vanishing_curse'].includes(id);let lo=2+3*lv,hi=6+13*lv;if(t){lo*=2;hi*=2}return {lo:Math.min(lo,64),hi:Math.min(hi,64),treasure:t}};
 
 /* smelting: input, output, xp per item, where: f = furnace only, b = furnace or blast furnace, s = furnace, smoker or campfire */
 const SMELT=[
@@ -94,7 +91,3 @@ function xpToLevel(p){let L=0;while(xpTotal(L+1)<=p)L++;return {level:L,into:p-x
 
 /* diamonds in each diamond item, for the netherite calculator */
 const DIAMOND_COST={Helmet:5,Chestplate:8,Leggings:7,Boots:4,Sword:2,Spear:1,Axe:3,Pickaxe:3,Shovel:1,Hoe:2};
-/* librarian odds: 2/3 chance of a book at novice, enchantment picked from 40, then the level */
-const LIB_BOOK_CHANCE=2/3,LIB_POOL=40;
-const libOdds=(id,lv)=>LIB_BOOK_CHANCE/LIB_POOL/(lv?EBY[id].max:1);
-const rollsFor=(p,q)=>Math.ceil(Math.log(1-q)/Math.log(1-p));

@@ -1,7 +1,7 @@
 {
   "name": "Minecraft companion",
   "short_name": "MC Guide",
-  "description": "Minecraft Java Edition crafting, enchanting, brewing, trading, smelting, smithing, banners, food, nether portals and XP.",
+  "description": "Minecraft Java Edition crafting, enchanting, brewing, trading, smithing, banners, food, nether portals, XP and furnace fuel.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

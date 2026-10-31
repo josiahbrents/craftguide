@@ -1,21 +1,22 @@
 /* ---------- shared ---------- */
 const TS={brew:{sub:'potion',sel:'strength',v:'base',form:'drink',n:3,order:[],have:{},ing:'Sugar',done:{}},
  trade:{sub:'prof',sel:'librarian',targets:[],count:0,log:[],vills:[]},
- smelt:{sub:'recipes',q:'',n:64,item:'Raw Iron',qty:64,ftype:'b',furn:1,fuels:{'Coal':1,'Block of Coal':1}},
  smith:{sub:'trim',pieces:{helmet:{mat:'diamond',pat:'coast',tm:'gold'},chest:{mat:'diamond',pat:'coast',tm:'gold'},legs:{mat:'diamond',pat:'coast',tm:'gold'},boots:{mat:'diamond',pat:'coast',tm:'gold'}},up:{Helmet:1,Chestplate:1,Leggings:1,Boots:1},owned:1,diag:0,found:{}},
  banner:{}, // filled with defaults in tabs_banner.js; listed here so saved banners load
  food:{sort:'best',hideBad:false},
  tools:{ox:'',oz:'',nx:'',nz:'',saved:[],cur:0,target:30},
- ui:{last:'craft',swipeTip:0}};
+ ui:{last:'craft'}};
 try{const s=JSON.parse(localStorage.getItem('mc-tabs')||'null');if(s){for(const k of Object.keys(TS))if(s[k]&&typeof s[k]==='object')Object.assign(TS[k],s[k]);
   // the old XP and Portals tabs became Tools: keep saved portals and the XP levels
   if(s.portal&&!s.tools){TS.tools.saved=s.portal.saved||[];['ox','oz','nx','nz'].forEach(k=>{TS.tools[k]=s.portal[k]||''})}
   if(s.xp&&!s.tools){TS.tools.cur=s.xp.cur||0;TS.tools.target=s.xp.target||30}}}catch(e){}
 if(!['potion','order','ing'].includes(TS.brew.sub))TS.brew.sub='potion';
-if(!['recipes','fuel'].includes(TS.smelt.sub))TS.smelt.sub='recipes';
 const saveTS=()=>{try{localStorage.setItem('mc-tabs',JSON.stringify(TS))}catch(e){}};
-const TABS=['craft','ench','brew','trade','smelt','smith','banner','food','tools'];
-const TAB_NAMES={craft:'Crafting',ench:'Enchanting',brew:'Brewing',trade:'Trades',smelt:'Smelting',smith:'Smithing',banner:'Banners',food:'Food',tools:'Tools'};
+const TABS=['craft','ench','brew','trade','smith','banner','food','tools'];
+const TAB_NAMES={craft:'Crafting',ench:'Enchanting',brew:'Brewing',trade:'Trades',smith:'Smithing',banner:'Banners',food:'Food',tools:'Tools'};
+// tabs that were removed or merged open the tab that took them over
+const OLD_TABS={xp:'tools',portal:'tools',smelt:'tools'};
+if(OLD_TABS[TS.ui.last])TS.ui.last=OLD_TABS[TS.ui.last];
 const secs=s=>{const [m,x]=s.split(':').map(Number);return m*60+x};
 const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 const pill=(attr,val,cur,label)=>`<button data-${attr}="${val}" aria-pressed="${val===cur}">${label}</button>`;
@@ -24,7 +25,6 @@ const irow=(name,inner)=>`<li>${linkItem(name,inner)}</li>`;
 const ilist=names=>`<ul class="ilist">${names.map(n=>irow(n,`${img(n)}<span>${esc(n)}</span>`)).join('')}</ul>`;
 const subnav=(tab,list)=>`<div class="esubs" role="group" aria-label="Sections">${list.map(([k,l])=>`<button data-tsub="${tab}:${k}" aria-pressed="${TS[tab].sub===k}">${l}</button>`).join('')}</div>`;
 const head=t=>`<header class="top"><h1>${t}</h1></header>`;
-const pct=p=>p>=0.995?'over 99%':p<0.01&&p>0?'under 1%':Math.round(p*100)+'%';
 const hashStr=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h.toString(36)};
 const numIn=(attr,val,extra='')=>`<input class="num" type="number" inputmode="numeric" data-${attr} value="${esc(val)}" ${extra}>`;
 
@@ -110,35 +110,6 @@ function renderProf(){
   const T=TS.trade,p=PROFS.find(x=>x.id===T.sel)||PROFS[0];
   return `<div class="ichips">${PROFS.map(x=>`<button class="ichip" data-prof="${x.id}" aria-pressed="${x.id===p.id}">${img(x.ws)}<span>${esc(x.name)}</span></button>`).join('')}</div>
   <article class="bpanel"><div class="bhead">${linkItem(p.ws,img(p.ws,'ic big'))}<div><h2>${esc(p.name)}</h2><p>Workstation: ${linkInl(p.ws)}</p></div></div><p>${esc(p.note)}</p>
-  <h3 class="eh3">Buys from you</h3>${ilist(p.buys)}<h3 class="eh3">Sells</h3>${ilist(p.sells)}
-  ${p.id==='librarian'?'<div class="eactions"><button class="btn primary" data-tsubgo="trade:hunt">Hunt for a book</button></div>':''}</article>`;
+  <h3 class="eh3">Buys from you</h3>${ilist(p.buys)}<h3 class="eh3">Sells</h3>${ilist(p.sells)}</article>`;
 }
-function huntTargets(){return TS.trade.targets.filter(t=>EBY[t.id])}
-function renderHunt(){
-  const T=TS.trade,tg=huntTargets(),pAny=tg.reduce((a,t)=>a+libOdds(t.id,t.lv?1:0),0);
-  const list=ENCH.filter(e=>!NO_LIBRARIAN.includes(e.id));
-  let h=`<div class="bpanel"><h3 class="eh3" style="margin-top:0">Books you want</h3>
-  <div class="drow"><select id="hid" aria-label="Enchantment">${list.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select><select id="hlv" aria-label="Level"><option value="max">Max level only</option><option value="any">Any level</option></select><button class="btn" data-hadd="1">Add</button></div>
-  <button class="link" data-hplan="1">Add the books from my enchanting plan</button>
-  ${tg.length?`<ul class="srows" style="margin-top:8px">${tg.map((t,i)=>{const p=libOdds(t.id,t.lv?1:0),e=EBY[t.id];return `<li class="srow">${img('Enchanted Book')}<span class="sio"><b><button class="ilink inl" data-go="ench|all:${t.id}">${esc(t.lv&&e.max>1?lvTxt(t.id,e.max):e.name+(e.max>1?' (any level)':''))}</button></b><small>1 in ${Math.round(1/p)} per reroll. 50% by ${rollsFor(p,.5)}, 90% by ${rollsFor(p,.9)}.</small></span><button class="link" data-hgot="${i}">Got it</button><button class="link" data-hrm="${i}">Remove</button></li>`}).join('')}</ul>`:'<p class="hint">Add a book to see your odds.</p>'}</div>`;
-  if(tg.length){
-    const luck=1-Math.pow(1-pAny,T.count);
-    h+=`<div class="counter"><div class="cnum"><b>${T.count}</b><span>reroll${T.count===1?'':'s'} so far</span></div>
-    <button class="bigbtn" data-hinc="1">+1 reroll</button><div class="eactions"><button class="btn small" data-hdec="1">Undo</button><button class="btn small" data-hzero="1">Start over</button></div>
-    <p class="bdur"><b>${tg.length>1?'Chance of any of these':'Chance'} per reroll: 1 in ${Math.round(1/pAny)}</b></p>
-    <div class="meter"><div style="width:${Math.min(100,luck*100).toFixed(1)}%"></div></div>
-    ${T.count?`<p>${pct(luck)} of players would have found ${tg.length>1?'one':'it'} by now.</p>`:''}</div>`;
-  }
-  if(T.log.length)h+=`<h3 class="eh3">Found so far</h3><ul class="srows">${T.log.slice().reverse().map(l=>`<li class="srow">${img('Enchanted Book')}<span class="sio"><b>${esc(l.name)}</b><small>After ${l.n} reroll${l.n===1?'':'s'}</small></span></li>`).join('')}</ul>`;
-  return h;
-}
-function renderVills(){
-  const T=TS.trade,profOpts=PROFS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
-  const books=ENCH.filter(e=>!NO_LIBRARIAN.includes(e.id)).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
-  return `<div class="bpanel"><div class="drow"><input id="vname" class="tin" placeholder="Name or spot, like “Hall 3”" aria-label="Villager name"><select id="vprof" aria-label="Profession">${profOpts}</select></div>
-  <input id="vnote" class="tin wide" placeholder="Notes, like “locked, cured twice”" aria-label="Notes"><button class="btn primary" data-vadd="1">Add villager</button></div>
-  ${T.vills.length?`<ul class="vlist">${T.vills.map((v,i)=>{const p=PROFS.find(x=>x.id===v.prof)||PROFS[0];return `<li class="vcard">${img(p.ws,'ic big')}<div class="vbody"><b>${esc(v.name||p.name)}</b><small>${esc(p.name)}${v.note?' · '+esc(v.note):''}</small>
-    ${v.books&&v.books.length?`<span class="vbooks">${v.books.map((b,j)=>`<span class="vbook">${esc(lvTxt(b.id,b.lv))} <button class="link" data-vbrm="${i}:${j}" aria-label="Remove">×</button></span>`).join('')}</span>`:''}
-    ${p.id==='librarian'?`<span class="drow"><select data-vbid="${i}" aria-label="Book">${books}</select><select data-vblv="${i}" aria-label="Level">${[1,2,3,4,5].map(n=>`<option value="${n}">${roman(n)}</option>`).join('')}</select><button class="btn small" data-vbadd="${i}">Add book</button></span>`:''}</div><button class="link" data-vrm="${i}">Remove</button></li>`}).join('')}</ul>`:'<p class="hint">No villagers saved yet.</p>'}`;
-}
-function renderTrade(){const T=TS.trade;return head('Villager trades')+subnav('trade',[['prof','Professions'],['hunt','Librarian hunt'],['vills','My villagers']])+(T.sub==='hunt'?renderHunt():T.sub==='vills'?renderVills():renderProf())}
+function renderTrade(){return head('Villager trades')+renderProf()}

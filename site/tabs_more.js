@@ -1,12 +1,6 @@
-/* ---------- smelting ---------- */
-function renderRecipes(){
-  const S=TS.smelt,q=S.q.trim().toLowerCase(),list=SMELT.filter(r=>!q||r[0].toLowerCase().includes(q)||r[1].toLowerCase().includes(q));
-  const where={b:'<span class="etag">Blast furnace</span>',s:'<span class="etag">Smoker</span><span class="etag">Campfire</span>',f:''};
-  return `${searchBox(`data-sq="1" placeholder="Search, like “iron” or “glass”" value="${esc(S.q)}" aria-label="Search smelting recipes"`)}
-  <ul class="srows" id="srows">${list.map(([i,o,xp,w])=>`<li class="srow" data-at="${esc(i)}|${esc(o)}">${linkItem(i,`${img(i)}<span class="sio"><b>${esc(i)}</b>${SMELT_NOTE[i]?`<small>${esc(SMELT_NOTE[i])}</small>`:''}</span>`)}<span class="arr" aria-hidden="true">→</span>${linkItem(o,`${img(o)}<span class="sio"><b>${esc(o)}</b><small>${xp} XP <span class="etag">Furnace</span>${where[w]}</small></span>`)}</li>`).join('')||'<li class="hint">No smelting recipes match.</li>'}</ul>`;
-}
-function renderFuel(){return `<ul class="srows">${FUELS.map(([f,per])=>`<li class="srow" data-at="${esc(f)}">${linkItem(f,`${img(f)}<span class="sio"><b>${esc(f)}</b></span>`)}<span class="need"><b>${per}</b><small>item${per===1?'':'s'}</small></span></li>`).join('')}</ul>`}
-function renderSmelt(){const S=TS.smelt;return head('Smelting')+subnav('smelt',[['recipes','Recipes'],['fuel','Fuel']])+(S.sub==='fuel'?renderFuel():renderRecipes())}
+/* ---------- furnace fuel (a card in Tools): how many items each fuel smelts ---------- */
+function renderFuel(){return `<article class="bpanel" id="fuel"><div class="bhead">${img('Furnace','ic big')}<h2>Furnace fuel</h2></div>
+  <ul class="srows">${FUELS.map(([f,per])=>`<li class="srow" data-at="${esc(f)}">${linkItem(f,`${img(f)}<span class="sio"><b>${esc(f)}</b></span>`)}<span class="need"><b>${per}</b><small>item${per===1?'':'s'}</small></span></li>`).join('')}</ul></article>`}
 
 /* ---------- smithing ---------- */
 const ARMOR_MATS=[['none','None'],['leather','Leather'],['chainmail','Chainmail'],['iron','Iron'],['gold','Gold'],['diamond','Diamond'],['netherite','Netherite'],['copper','Copper']];
@@ -86,7 +80,8 @@ function renderTools(){
   ${renderMyPortals()}
   <article class="bpanel" id="xp"><div class="bhead">${linkItem("Bottle o' Enchanting",img("Bottle o' Enchanting",'ic big'))}<h2>XP to level</h2></div>
   <div class="pgrid two"><label class="pfield"><span>Level now</span>${numIn('xp="cur"',P.cur,'min="0" max="1000"')}</label><label class="pfield"><span>Target level</span>${numIn('xp="target"',P.target,'min="1" max="1000"')}</label></div>
-  <div id="xpout">${xpOut()}</div></article>`;
+  <div id="xpout">${xpOut()}</div></article>
+  ${renderFuel()}`;
 }
 /* typing in one side of the converter fills in the other side */
 function portalSync(k){
