@@ -1,0 +1,4 @@
+# Mojang's default resource pack: needed locally to regenerate icons, never commit it
+tools/texture-pack/
+node_modules/
+.DS_Store
