@@ -4,7 +4,8 @@ Handoff notes from the claude.ai chat where this app was built. Read this first.
 
 ## Who and what
 - Owner: Josiah. Uses it on his iPhone as a Home Screen web app; his brother uses it too.
-- Live site: https://craftguide.netlify.app (Netlify, free account, project `craftguide`, formerly `whimsical-rabanadas-da6ddf`, whose old URL now 404s).
+- Live site: **https://craftguide-blue.vercel.app** (Vercel, imported from the GitHub repo; `vercel.json` serves `site/` with no build and never caches `sw.js`). Main host since Nov 2026.
+- Also still live: https://craftguide.netlify.app (Netlify project `craftguide`, formerly `whimsical-rabanadas-da6ddf`). Josiah chose to leave it running and linked, so every push deploys to both. Saved data on phones is per address and doesn't move between them.
 - Code: private GitHub repo https://github.com/josiahbrents/craftguide, branch `main` (renamed from `minecraft-companion`; the local folder still has the old name).
 - Java Edition only. Bedrock is out of scope everywhere.
 - Repo must stay **private**: `site/textures.js`, `site/trims_data.js`, `site/banner_data.js` and `site/fonts/mojangles.woff` are built from Mojang's default resource pack.
@@ -18,7 +19,7 @@ Handoff notes from the claude.ai chat where this app was built. Read this first.
 - **Only build what players actually use while playing.** He cut calculators nobody would stop to use (food fill-up, XP sources, Mending repair cost, smelting batch/fuel calculators, "what can I brew"), the Smelting recipe list, and the Librarian hunt and My villagers pages. Don't add things like that back.
 - **It should feel like a native app**: navigation is the bottom bar only (no swiping between tabs), and there's no zooming.
 - He likes the tabs working together: any item shown should be tappable to see where else it appears (see Cross-tab links).
-- Ship each update as a commit; Netlify deploys from the repo.
+- Ship each update as a commit; Vercel and Netlify both deploy from the repo on push.
 
 ## Architecture
 No framework, no bundler. `site/index.html` loads classic scripts in this order, sharing globals:
